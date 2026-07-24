@@ -1,30 +1,25 @@
 import { useState } from "react";
-
-import StepIndicator from "./StepIndicator";
-import Step1 from "./Step1";
-import Step2 from "./Step2";
-import Step3 from "./Step3";
-import Step4 from "./Step4";
+import StepIndicator from "./stepIndicator";
+import Step1 from "./step1";
+import Step2 from "./step2";
+import Step3 from "./step3";
+import Step4 from "./step4";
+import { ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 function ProfileWizard() {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
 
   const [profileData, setProfileData] = useState({
-    // Step 1
     college: "",
     degree: "",
     currentYear: "",
-
-    // Step 2
     targetRole: "",
     targetCompanies: [],
     timeline: "",
     dailyHours: "",
-
-    // Step 3
     selectedSkills: [],
-
-    // Step 4
     skillConfidence: {},
   });
 
@@ -36,48 +31,32 @@ function ProfileWizard() {
   };
 
   const nextStep = () => {
-    switch (currentStep) {
-      case 1:
-        if (
-          !profileData.college ||
-          !profileData.degree ||
-          !profileData.currentYear
-        ) {
-          alert("Please complete your academic information.");
-          return;
-        }
-        break;
-
-      case 2:
-        if (
-          !profileData.targetRole ||
-          profileData.targetCompanies.length === 0 ||
-          !profileData.timeline ||
-          !profileData.dailyHours
-        ) {
-          alert("Please complete your career goals.");
-          return;
-        }
-        break;
-
-      case 3:
-        if (profileData.selectedSkills.length === 0) {
-          alert("Please select at least one skill.");
-          return;
-        }
-        break;
-
-      default:
-        break;
+    if (currentStep === 1) {
+      if (!profileData.college || !profileData.degree || !profileData.currentYear) {
+        alert("Please complete all academic information.");
+        return;
+      }
+    } else if (currentStep === 2) {
+      if (
+        !profileData.targetRole ||
+        profileData.targetCompanies.length === 0 ||
+        !profileData.timeline ||
+        !profileData.dailyHours
+      ) {
+        alert("Please select target role, companies, timeline, and study hours.");
+        return;
+      }
+    } else if (currentStep === 3) {
+      if (profileData.selectedSkills.length === 0) {
+        alert("Please select at least one technology/skill.");
+        return;
+      }
     }
-
     setCurrentStep((prev) => prev + 1);
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
-    }
+    if (currentStep > 1) setCurrentStep((prev) => prev - 1);
   };
 
   const submitProfile = () => {
@@ -86,72 +65,62 @@ function ProfileWizard() {
     );
 
     if (!allRated) {
-      alert("Please rate all selected skills.");
+      alert("Please rate your confidence for all selected skills.");
       return;
     }
 
-    console.log(profileData);
-
-    // Later
-    // navigate("/assessment");
+    // Save profile data & proceed to assessment intro
+    navigate("/assessment");
   };
 
   return (
-    <div className="w-full max-w-4xl rounded-3xl border border-zinc-800 bg-[#11111A]/90 p-10 backdrop-blur-xl">
+    <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-zinc-800/80 bg-[#11111A]/90 p-6 shadow-2xl backdrop-blur-2xl sm:p-10">
+      {/* Background Glow Highlights */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-violet-600/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-cyan-500/15 blur-3xl" />
+
+      {/* Step Progress Header */}
       <StepIndicator currentStep={currentStep} />
 
-      <div className="mt-10">
+      {/* Animated Step Form Body */}
+      <div className="relative z-10 mt-8 min-h-[380px]">
         {currentStep === 1 && (
-          <Step1
-            data={profileData}
-            updateProfile={updateProfile}
-          />
+          <Step1 data={profileData} updateProfile={updateProfile} />
         )}
-
         {currentStep === 2 && (
-          <Step2
-            data={profileData}
-            updateProfile={updateProfile}
-          />
+          <Step2 data={profileData} updateProfile={updateProfile} />
         )}
-
         {currentStep === 3 && (
-          <Step3
-            data={profileData}
-            updateProfile={updateProfile}
-          />
+          <Step3 data={profileData} updateProfile={updateProfile} />
         )}
-
         {currentStep === 4 && (
-          <Step4
-            data={profileData}
-            updateProfile={updateProfile}
-          />
+          <Step4 data={profileData} updateProfile={updateProfile} />
         )}
       </div>
 
-      <div className="mt-12 flex justify-between">
+      {/* Footer Controls */}
+      <div className="relative z-10 mt-10 flex items-center justify-between border-t border-zinc-800/80 pt-6">
         <button
           onClick={prevStep}
           disabled={currentStep === 1}
-          className="rounded-xl border border-zinc-700 px-6 py-3 text-zinc-300 transition hover:border-zinc-500 disabled:opacity-40"
+          className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-[#09090F] px-5 py-3 text-sm font-semibold text-zinc-300 transition duration-200 hover:border-zinc-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
         >
-          Back
+          <ArrowLeft size={16} /> Back
         </button>
 
         {currentStep === 4 ? (
           <button
             onClick={submitProfile}
-            className="rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-8 py-3 font-semibold text-white transition hover:scale-105"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-95"
           >
-            Generate AI Roadmap
+            Generate AI Roadmap <Sparkles size={16} />
           </button>
         ) : (
           <button
             onClick={nextStep}
-            className="rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-8 py-3 font-semibold text-white transition hover:scale-105"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-95"
           >
-            Continue
+            Continue <ArrowRight size={16} />
           </button>
         )}
       </div>

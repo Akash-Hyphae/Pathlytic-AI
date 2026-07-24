@@ -1,71 +1,17 @@
-import {
-  Code2,
-  Database,
-  Server,
-  BookOpen,
-  Brain,
-} from "lucide-react";
+import { Code2, Check, Sparkles } from "lucide-react";
 
 const skillCategories = [
   {
-    title: "Programming Languages",
-    icon: Code2,
-    skills: ["Java", "Python", "C++", "JavaScript"],
+    title: "Languages",
+    skills: ["JavaScript", "Java", "Python", "C++", "SQL"],
   },
   {
-    title: "Frontend",
-    icon: Code2,
-    skills: [
-      "HTML",
-      "CSS",
-      "Tailwind CSS",
-      "React",
-      "Next.js",
-    ],
+    title: "Frontend & Backend",
+    skills: ["HTML/CSS", "React", "Node.js", "Express.js", "MongoDB"],
   },
   {
-    title: "Backend",
-    icon: Server,
-    skills: [
-      "Node.js",
-      "Express.js",
-      "Spring Boot",
-      "Django",
-    ],
-  },
-  {
-    title: "Database",
-    icon: Database,
-    skills: [
-      "SQL",
-      "MongoDB",
-      "PostgreSQL",
-      "MySQL",
-    ],
-  },
-  {
-    title: "Core CS",
-    icon: BookOpen,
-    skills: [
-      "OOP",
-      "DBMS",
-      "Operating System",
-      "Computer Networks",
-    ],
-  },
-  {
-    title: "DSA",
-    icon: Brain,
-    skills: [
-      "Arrays",
-      "Strings",
-      "Linked List",
-      "Stack",
-      "Queue",
-      "Trees",
-      "Graphs",
-      "Dynamic Programming",
-    ],
+    title: "Core Computer Science",
+    skills: ["DSA", "OOP Concepts", "DBMS", "Operating Systems"],
   },
 ];
 
@@ -73,9 +19,7 @@ function Step3({ data, updateProfile }) {
   const toggleSkill = (skill) => {
     if (data.selectedSkills.includes(skill)) {
       updateProfile({
-        selectedSkills: data.selectedSkills.filter(
-          (item) => item !== skill
-        ),
+        selectedSkills: data.selectedSkills.filter((s) => s !== skill),
       });
     } else {
       updateProfile({
@@ -85,102 +29,59 @@ function Step3({ data, updateProfile }) {
   };
 
   return (
-    <div>
-      {/* Header */}
-
-      <div className="flex items-center gap-4">
-        <div className="rounded-2xl bg-violet-500/15 p-4">
-          <Code2 size={30} className="text-violet-400" />
+    <div className="space-y-6">
+      <div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-400">
+          <Code2 size={14} /> Step 3 of 4
         </div>
-
-        <div>
-          <h2 className="text-3xl font-bold text-white">
-            Current Skills
-          </h2>
-
-          <p className="mt-1 text-zinc-400">
-            Select all the technologies and concepts you already know.
-          </p>
-        </div>
+        <h2 className="mt-2 text-2xl font-extrabold text-white">
+          Current Technology Stack
+        </h2>
+        <p className="text-xs text-zinc-400">
+          Select technologies you are familiar with. The AI quiz will test your proficiency in these.
+        </p>
       </div>
 
-      {/* Categories */}
-
-      <div className="mt-10 space-y-8">
-        {skillCategories.map((category) => {
-          const Icon = category.icon;
-
-          return (
-            <div
-              key={category.title}
-              className="rounded-2xl border border-zinc-800 bg-[#09090F] p-6"
-            >
-              <div className="mb-5 flex items-center gap-3">
-                <Icon
-                  size={20}
-                  className="text-cyan-400"
-                />
-
-                <h3 className="text-lg font-semibold text-white">
-                  {category.title}
-                </h3>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {category.skills.map((skill) => (
+      <div className="space-y-4">
+        {skillCategories.map((cat) => (
+          <div
+            key={cat.title}
+            className="rounded-2xl border border-zinc-800/80 bg-[#09090F] p-4"
+          >
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              {cat.title}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {cat.skills.map((skill) => {
+                const selected = data.selectedSkills.includes(skill);
+                return (
                   <button
                     key={skill}
                     type="button"
                     onClick={() => toggleSkill(skill)}
-                    className={`rounded-full border px-4 py-2 text-sm font-medium transition-all
-
-                    ${
-                      data.selectedSkills.includes(skill)
-                        ? "border-cyan-400 bg-cyan-400/10 text-cyan-400"
-                        : "border-zinc-800 bg-[#11111A] text-zinc-300 hover:border-zinc-600"
-                    }
-                    `}
+                    className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
+                      selected
+                        ? "border-cyan-400 bg-cyan-400/10 text-cyan-400 shadow-sm"
+                        : "border-zinc-800 bg-[#11111A] text-zinc-400 hover:border-zinc-700 hover:text-white"
+                    }`}
                   >
-                    {skill}
+                    {selected && <Check size={14} />} {skill}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
-      {/* Summary */}
-
-      <div className="mt-8 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-white">
-              Selected Skills
-            </h3>
-
-            <p className="mt-1 text-sm text-zinc-400">
-              These skills will be used to personalize your assessment.
-            </p>
-          </div>
-
-          <div className="text-3xl font-bold text-cyan-400">
-            {data.selectedSkills.length}
-          </div>
-        </div>
-
-        {data.selectedSkills.length > 0 && (
-          <div className="mt-5 flex flex-wrap gap-2">
-            {data.selectedSkills.map((skill) => (
-              <span
-                key={skill}
-                className="rounded-full bg-cyan-500/10 px-3 py-1 text-sm text-cyan-400"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-        )}
+      {/* Counter summary */}
+      <div className="flex items-center justify-between rounded-xl bg-violet-500/10 px-4 py-2.5 border border-violet-500/20">
+        <span className="text-xs font-semibold text-violet-300">
+          Selected Technologies
+        </span>
+        <span className="rounded-full bg-violet-500/20 px-2.5 py-0.5 text-xs font-bold text-violet-400">
+          {data.selectedSkills.length} Selected
+        </span>
       </div>
     </div>
   );

@@ -1,119 +1,83 @@
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Building2, BookMarked } from "lucide-react";
 
-const degrees = [
-  "B.Tech",
-  "BCA",
-  "MCA",
-  "B.Sc",
-  "M.Tech",
-  "Other",
-];
-
-const years = [
-  "1st Year",
-  "2nd Year",
-  "3rd Year",
-  "4th Year",
-  "Graduate",
-];
+const degrees = ["B.Tech", "BCA", "MCA", "B.Sc", "M.Tech", "Other"];
+const years = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Graduate"];
 
 function Step1({ data, updateProfile }) {
   return (
-    <div>
-      {/* Header */}
-
-      <div className="flex items-center gap-4">
-        <div className="rounded-2xl bg-violet-500/15 p-4">
-          <GraduationCap
-            size={30}
-            className="text-violet-400"
-          />
+    <div className="space-y-6">
+      <div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-400">
+          <GraduationCap size={14} /> Step 1 of 4
         </div>
-
-        <div>
-          <h2 className="text-3xl font-bold text-white">
-            Academic Information
-          </h2>
-
-          <p className="mt-1 text-zinc-400">
-            Tell us about your education so we can personalize your learning
-            journey.
-          </p>
-        </div>
+        <h2 className="mt-2 text-2xl font-extrabold text-white">
+          Academic Profile
+        </h2>
+        <p className="text-xs text-zinc-400">
+          Pathlytic needs your education timeline to set realistic daily study expectations.
+        </p>
       </div>
 
-      {/* Form */}
-
-      <div className="mt-10 space-y-7">
-        {/* College */}
-
+      <div className="space-y-4">
+        {/* College Name */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
             College / University
           </label>
-
-          <input
-            type="text"
-            placeholder="JECRC University"
-            value={data.college}
-            onChange={(e) =>
-              updateProfile({
-                college: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-zinc-800 bg-[#09090F] px-5 py-4 text-white outline-none transition-all focus:border-cyan-400"
-          />
+          <div className="relative">
+            <Building2
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"
+            />
+            <input
+              type="text"
+              placeholder="e.g. JECRC University"
+              value={data.college}
+              onChange={(e) => updateProfile({ college: e.target.value })}
+              className="w-full rounded-xl border border-zinc-800 bg-[#09090F] py-3.5 pl-11 pr-4 text-sm text-white placeholder-zinc-600 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+            />
+          </div>
         </div>
 
-        {/* Degree */}
-
+        {/* Degree Selection */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Degree
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Degree Program
           </label>
-
-          <select
-            value={data.degree}
-            onChange={(e) =>
-              updateProfile({
-                degree: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-zinc-800 bg-[#09090F] px-5 py-4 text-white outline-none transition-all focus:border-cyan-400"
-          >
-            <option value="">Select Degree</option>
-
+          <div className="grid grid-cols-3 gap-2.5">
             {degrees.map((degree) => (
-              <option key={degree}>{degree}</option>
+              <button
+                key={degree}
+                type="button"
+                onClick={() => updateProfile({ degree })}
+                className={`rounded-xl border py-2.5 text-xs font-semibold transition ${
+                  data.degree === degree
+                    ? "border-cyan-400 bg-cyan-400/10 text-cyan-400 shadow-sm"
+                    : "border-zinc-800 bg-[#09090F] text-zinc-400 hover:border-zinc-700 hover:text-white"
+                }`}
+              >
+                {degree}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
-        {/* Current Year */}
-
+        {/* Current Year Selection */}
         <div>
-          <label className="mb-3 block text-sm font-medium text-zinc-300">
-            Current Year
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Current Academic Year
           </label>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5">
             {years.map((year) => (
               <button
                 key={year}
                 type="button"
-                onClick={() =>
-                  updateProfile({
-                    currentYear: year,
-                  })
-                }
-                className={`rounded-xl border p-4 text-sm font-medium transition-all
-
-                ${
+                onClick={() => updateProfile({ currentYear: year })}
+                className={`rounded-xl border py-2.5 text-xs font-semibold transition ${
                   data.currentYear === year
-                    ? "border-cyan-400 bg-cyan-400/10 text-cyan-400"
-                    : "border-zinc-800 bg-[#09090F] text-zinc-300 hover:border-zinc-600"
-                }
-                `}
+                    ? "border-violet-500 bg-violet-500/10 text-violet-400 shadow-sm"
+                    : "border-zinc-800 bg-[#09090F] text-zinc-400 hover:border-zinc-700 hover:text-white"
+                }`}
               >
                 {year}
               </button>

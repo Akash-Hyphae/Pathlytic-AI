@@ -1,4 +1,4 @@
-import { Star, CheckCircle2 } from "lucide-react";
+import { Star, CheckCircle } from "lucide-react";
 
 function Step4({ data, updateProfile }) {
   const updateConfidence = (skill, rating) => {
@@ -10,120 +10,61 @@ function Step4({ data, updateProfile }) {
     });
   };
 
-  const ratedSkills = data.selectedSkills.filter(
-    (skill) => data.skillConfidence[skill]
-  ).length;
-
   return (
-    <div>
-      {/* Header */}
-
-      <div className="flex items-center gap-4">
-        <div className="rounded-2xl bg-violet-500/15 p-4">
-          <CheckCircle2
-            size={30}
-            className="text-violet-400"
-          />
+    <div className="space-y-6">
+      <div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+          <CheckCircle size={14} /> Final Step
         </div>
-
-        <div>
-          <h2 className="text-3xl font-bold text-white">
-            Skill Confidence
-          </h2>
-
-          <p className="mt-1 text-zinc-400">
-            Rate how confident you are in every selected skill.
-            This helps Pathlytic compare your confidence with your
-            assessment performance.
-          </p>
-        </div>
+        <h2 className="mt-2 text-2xl font-extrabold text-white">
+          Rate Skill Confidence
+        </h2>
+        <p className="text-xs text-zinc-400">
+          Rate your current confidence in each selected skill (1 = Beginner, 5 = Master).
+        </p>
       </div>
 
-      {/* Progress */}
-
-      <div className="mt-8 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-5">
-        <div className="flex items-center justify-between">
-          <span className="text-zinc-300">
-            Skills Rated
-          </span>
-
-          <span className="text-xl font-bold text-cyan-400">
-            {ratedSkills} / {data.selectedSkills.length}
-          </span>
-        </div>
-
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-zinc-800">
-          <div
-            className="h-full rounded-full bg-cyan-400 transition-all"
-            style={{
-              width:
-                data.selectedSkills.length === 0
-                  ? "0%"
-                  : `${(ratedSkills / data.selectedSkills.length) * 100}%`,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Skills */}
-
-      <div className="mt-8 space-y-5">
+      <div className="max-h-[260px] space-y-3 overflow-y-auto pr-1">
         {data.selectedSkills.map((skill) => (
           <div
             key={skill}
-            className="rounded-2xl border border-zinc-800 bg-[#09090F] p-6"
+            className="flex items-center justify-between rounded-xl border border-zinc-800 bg-[#09090F] p-4"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-white">
-                  {skill}
-                </h3>
+            <span className="text-sm font-semibold text-white">{skill}</span>
 
-                <p className="mt-1 text-sm text-zinc-500">
-                  Rate your confidence from 1 to 5.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <button
-                    key={rating}
-                    type="button"
-                    onClick={() =>
-                      updateConfidence(skill, rating)
+            <div className="flex items-center gap-1.5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => updateConfidence(skill, star)}
+                  className="transition hover:scale-110"
+                >
+                  <Star
+                    size={20}
+                    fill={
+                      star <= (data.skillConfidence[skill] || 0)
+                        ? "#22D3EE"
+                        : "transparent"
                     }
-                    className="transition hover:scale-110"
-                  >
-                    <Star
-                      size={30}
-                      fill={
-                        rating <=
-                        (data.skillConfidence[skill] || 0)
-                          ? "#22D3EE"
-                          : "transparent"
-                      }
-                      className={
-                        rating <=
-                        (data.skillConfidence[skill] || 0)
-                          ? "text-cyan-400"
-                          : "text-zinc-600"
-                      }
-                    />
-                  </button>
-                ))}
-              </div>
+                    className={
+                      star <= (data.skillConfidence[skill] || 0)
+                        ? "text-cyan-400"
+                        : "text-zinc-700"
+                    }
+                  />
+                </button>
+              ))}
             </div>
           </div>
         ))}
+
+        {data.selectedSkills.length === 0 && (
+          <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center text-xs text-zinc-500">
+            No technologies selected. Please go back and select skills.
+          </div>
+        )}
       </div>
-
-      {/* Empty State */}
-
-      {data.selectedSkills.length === 0 && (
-        <div className="mt-8 rounded-2xl border border-zinc-800 bg-[#09090F] p-8 text-center text-zinc-500">
-          No skills selected.
-        </div>
-      )}
     </div>
   );
 }

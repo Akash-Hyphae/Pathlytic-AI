@@ -4,14 +4,14 @@ import Landing from "../Pages/Landing";
 import Login from "../Pages/Login";
 import Register from "../Pages/Register";
 import Dashboard from "../Pages/Dashboard";
-import Profile from "../Pages/Profile";
+import Profile from "../Pages/ProfilePage";
+import AssessmentWelcome from "../Pages/AssessmentWelcome";
 import Assessment from "../Pages/Assessment";
+import AssessmentResult from "../Pages/AssessmentResult";
 import ForgotPassword from "../Pages/ForgotPassword";
 import VerifyOtp from "../Pages/VerifyOtp";
 import ResetPassword from "../Pages/ResetPassword";
 import CompleteProfile from "../Pages/CompleteProfile";
-import AssessmentWelcome from "../Pages/AssessmentWelcome";
-import AssessmentResult from "../Pages/AssessmentResult";
 import AIAnalysis from "../Pages/AIAnalysis";
 import AIRoadmap from "../Pages/AIRoadMap";
 import DailyTasks from "../Pages/DailyTasks";
@@ -26,9 +26,6 @@ function AppRoutes() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/assessment" element={<Assessment />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/reset-password" element={<ResetPassword />} />
