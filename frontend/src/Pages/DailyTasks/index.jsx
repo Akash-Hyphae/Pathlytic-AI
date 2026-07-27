@@ -1,67 +1,98 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import TopNavbar from "../../components/dashboard/topNavBar";
 import {
   Flame,
-  CheckCircle2,
   Clock,
   Zap,
   BookOpen,
   Code2,
   Video,
   Award,
+  Loader2,
 } from "lucide-react";
-
-const initialTasks = [
-  {
-    id: 1,
-    title: "Watch React Custom Hooks Architecture",
-    category: "Video Lesson",
-    time: "30 mins",
-    xp: 50,
-    completed: false,
-    icon: Video,
-    color: "text-red-400",
-  },
-  {
-    id: 2,
-    title: "Solve 'Two Sum' & '3Sum' on LeetCode",
-    category: "Coding Practice",
-    time: "45 mins",
-    xp: 80,
-    completed: true,
-    icon: Code2,
-    color: "text-cyan-400",
-  },
-  {
-    id: 3,
-    title: "Implement JWT Refresh Tokens in Express",
-    category: "Hands-on Project",
-    time: "60 mins",
-    xp: 100,
-    completed: false,
-    icon: Zap,
-    color: "text-violet-400",
-  },
-  {
-    id: 4,
-    title: "Revise DBMS Indexing & B-Trees",
-    category: "Revision Notes",
-    time: "20 mins",
-    xp: 40,
-    completed: false,
-    icon: BookOpen,
-    color: "text-amber-400",
-  },
-];
+import axios from "axios";
 
 function DailyTasks() {
-  const [taskList, setTaskList] = useState(initialTasks);
+  const [taskList, setTaskList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentWeekNum, setCurrentWeekNum] = useState(1);
 
-  const toggleTask = (id) => {
-    setTaskList((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+  useEffect(() => {
+    fetchActiveTasks();
+  }, []);
+
+  const fetchActiveTasks = async () => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      if (!userInfo || !userInfo.token) {
+        setLoading(false);
+        return;
+      }
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      };
+
+      const { data } = await axios.get("http://localhost:5000/api/roadmap/me", config);
+
+      if (data.success && data.data?.weeks?.length) {
+        const activeWeek = data.data.weeks[0]; // Active Week
+        setCurrentWeekNum(activeWeek.week);
+
+        // Map backend tasks to preserve your UI icons, XP, and categories
+        const mappedTasks = activeWeek.tasks.map((t, idx) => {
+          const categoryIcons = [Video, Code2, Zap, BookOpen];
+          const categoryColors = ["text-red-400", "text-cyan-400", "text-violet-400", "text-amber-400"];
+          const categories = ["Video Lesson", "Coding Practice", "Hands-on Task", "Revision Notes"];
+
+          return {
+            id: t.id,
+            title: t.name,
+            category: categories[idx % categories.length],
+            time: t.time || "30 mins",
+            xp: 50 + (idx * 20),
+            completed: t.completed,
+            icon: categoryIcons[idx % categoryIcons.length],
+            color: categoryColors[idx % categoryColors.length],
+          };
+        });
+
+        setTaskList(mappedTasks);
+      }
+    } catch (err) {
+      console.error("Fetch Daily Tasks Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleTask = async (id) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const config = {
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      };
+
+      // Optimistic UI update
+      setTaskList((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+      );
+
+      // Save to MongoDB
+      await axios.patch(
+        "http://localhost:5000/api/roadmap/task/toggle",
+        { weekNumber: currentWeekNum, taskId: id },
+        config
+      );
+    } catch (err) {
+      console.error("Task Toggle Error:", err);
+      fetchActiveTasks(); // Revert on failure
+    }
   };
 
   const completedTasks = taskList.filter((t) => t.completed).length;
@@ -84,7 +115,7 @@ function DailyTasks() {
               Today's Micro-Goals
             </h1>
             <p className="mt-1 text-sm text-zinc-400">
-              AI calculated these 4 micro-tasks to keep you on schedule for your 90-day target.
+              AI calculated these micro-tasks from Week {currentWeekNum} to keep you on schedule for your target.
             </p>
           </div>
 
@@ -107,60 +138,71 @@ function DailyTasks() {
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-white">Action Items</h2>
 
-          {taskList.map((task) => {
-            const Icon = task.icon;
+          {loading ? (
+            <div className="flex h-40 items-center justify-center space-x-2 text-zinc-400">
+              <Loader2 className="animate-spin text-cyan-400" size={24} />
+              <p className="text-sm">Loading daily micro-tasks...</p>
+            </div>
+          ) : taskList.length === 0 ? (
+            <div className="rounded-2xl border border-zinc-800 bg-[#11111A] p-6 text-center text-zinc-400">
+              No tasks found for today. Please complete your profile wizard first.
+            </div>
+          ) : (
+            taskList.map((task) => {
+              const Icon = task.icon;
 
-            return (
-              <div
-                key={task.id}
-                onClick={() => toggleTask(task.id)}
-                className={`group flex cursor-pointer items-center justify-between rounded-2xl border p-5 transition duration-200 ${
-                  task.completed
-                    ? "border-zinc-800/60 bg-[#09090F]/50 opacity-70"
-                    : "border-zinc-800 bg-[#11111A] hover:border-violet-500/50"
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={() => {}}
-                    className="h-5 w-5 rounded border-zinc-700 bg-zinc-900 accent-cyan-500 cursor-pointer"
-                  />
+              return (
+                <div
+                  key={task.id}
+                  onClick={() => toggleTask(task.id)}
+                  className={`group flex cursor-pointer items-center justify-between rounded-2xl border p-5 transition duration-200 ${
+                    task.completed
+                      ? "border-zinc-800/60 bg-[#09090F]/50 opacity-70"
+                      : "border-zinc-800 bg-[#11111A] hover:border-violet-500/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={() => {}}
+                      className="h-5 w-5 rounded border-zinc-700 bg-zinc-900 accent-cyan-500 cursor-pointer"
+                    />
 
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#09090F]">
-                    <Icon className={task.color} size={22} />
-                  </div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#09090F]">
+                      <Icon className={task.color} size={22} />
+                    </div>
 
-                  <div>
-                    <h3
-                      className={`font-semibold ${
-                        task.completed
-                          ? "text-zinc-500 line-through"
-                          : "text-white"
-                      }`}
-                    >
-                      {task.title}
-                    </h3>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-zinc-400">
-                      <span className="rounded bg-zinc-800 px-2 py-0.5">
-                        {task.category}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} /> {task.time}
-                      </span>
+                    <div>
+                      <h3
+                        className={`font-semibold ${
+                          task.completed
+                            ? "text-zinc-500 line-through"
+                            : "text-white"
+                        }`}
+                      >
+                        {task.title}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-zinc-400">
+                        <span className="rounded bg-zinc-800 px-2 py-0.5">
+                          {task.category}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} /> {task.time}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-400">
-                    +{task.xp} XP
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-400">
+                      +{task.xp} XP
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         {/* Tomorrow Preview */}
@@ -169,7 +211,7 @@ function DailyTasks() {
             <Award size={16} className="text-cyan-400" /> Tomorrow's Focus Preview
           </div>
           <p className="mt-2 text-sm text-zinc-300">
-            Tomorrow AI will focus on **React Context API State Optimization** and **Graph Breadth-First Search (BFS)**.
+            Tomorrow AI will focus on advanced practice modules and target company assessment prep.
           </p>
         </div>
       </div>

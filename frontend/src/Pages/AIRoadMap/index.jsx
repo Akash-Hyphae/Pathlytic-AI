@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import TopNavbar from "../../components/dashboard/topNavBar";
 import {
@@ -7,117 +7,58 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  CheckCircle2,
   BookOpen,
   Code2,
   Video,
   ExternalLink,
   Target,
   Flame,
+  Loader2,
 } from "lucide-react";
-import roadmapData from "./roadmapData";
-
-// AI Generated Weekly Pathways
-const weeklyPathways = [
-  {
-    week: 1,
-    title: "Core JavaScript Engine & Async Mastery",
-    status: "Current Week",
-    timeCommitment: "15 Hours Total",
-    aiSummary:
-      "Focuses on strengthening JavaScript concepts required by top companies like Google & Amazon before jumping into React.",
-    tasks: [
-      { id: "w1-1", name: "Master Execution Context & Call Stack", completed: true, time: "2 hrs" },
-      { id: "w1-2", name: "Closures & Higher-Order Functions", completed: true, time: "3 hrs" },
-      { id: "w1-3", name: "Promises, Async/Await & Event Loop", completed: false, time: "4 hrs" },
-      { id: "w1-4", name: "Prototypal Inheritance & ES6 Modules", completed: false, time: "3 hrs" },
-      { id: "w1-5", name: "Build a Mini Async Weather Dashboard", completed: false, time: "3 hrs" },
-    ],
-    materials: [
-      {
-        title: "Event Loop & Call Stack Animated Guide",
-        type: "AI Interactive Doc",
-        icon: BookOpen,
-        link: "#",
-      },
-      {
-        title: "Async/Await Interview Masterclass",
-        type: "Video Lesson",
-        icon: Video,
-        link: "#",
-      },
-      {
-        title: "Practice: 10 Closure & Scope Code Snippets",
-        type: "AI Code Sandbox",
-        icon: Code2,
-        link: "#",
-      },
-    ],
-  },
-  {
-    week: 2,
-    title: "React Core Architecture & Hooks Internal Mechanics",
-    status: "Upcoming",
-    timeCommitment: "18 Hours Total",
-    aiSummary:
-      "Targeting your weak spots in React state management and rendering behaviors.",
-    tasks: [
-      { id: "w2-1", name: "Virtual DOM & Reconciliation Algorithm", completed: false, time: "3 hrs" },
-      { id: "w2-2", name: "useState, useEffect & Memory Leaks", completed: false, time: "4 hrs" },
-      { id: "w2-3", name: "Custom Hooks Design Pattern", completed: false, time: "4 hrs" },
-      { id: "w2-4", name: "useMemo, useCallback & Performance", completed: false, time: "3 hrs" },
-      { id: "w2-5", name: "Build Custom Form Hook Library", completed: false, time: "4 hrs" },
-    ],
-    materials: [
-      {
-        title: "React Virtual DOM In-Depth Breakdown",
-        type: "AI Interactive Doc",
-        icon: BookOpen,
-        link: "#",
-      },
-      {
-        title: "Custom Hooks Architecture Pattern",
-        type: "Video Lesson",
-        icon: Video,
-        link: "#",
-      },
-    ],
-  },
-  {
-    week: 3,
-    title: "Full Stack Integration: Express APIs & MongoDB",
-    status: "Upcoming",
-    timeCommitment: "16 Hours Total",
-    aiSummary:
-      "Connecting frontend React state with RESTful microservices and backend database schemas.",
-    tasks: [
-      { id: "w3-1", name: "RESTful API Best Practices & Status Codes", completed: false, time: "3 hrs" },
-      { id: "w3-2", name: "Express Middleware & JWT Authentication", completed: false, time: "4 hrs" },
-      { id: "w3-3", name: "MongoDB Schema Design & Mongoose Models", completed: false, time: "4 hrs" },
-      { id: "w3-4", name: "Connecting React Frontend to Node Backend", completed: false, time: "5 hrs" },
-    ],
-    materials: [
-      {
-        title: "JWT Authentication Flow Diagram & Implementation",
-        type: "AI Interactive Doc",
-        icon: BookOpen,
-        link: "#",
-      },
-      {
-        title: "Full Stack REST API Integration Demo",
-        type: "Video Lesson",
-        icon: Video,
-        link: "#",
-      },
-    ],
-  },
-];
+import axios from "axios";
 
 function AIRoadmap() {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
-  const [weeksData, setWeeksData] = useState(weeklyPathways);
+  const [weeksData, setWeeksData] = useState([]);
+  const [targetRole, setTargetRole] = useState("Full Stack Developer");
+  const [loading, setLoading] = useState(true);
 
-  const activeWeek = weeksData[currentWeekIndex];
+  // Fetch Live Roadmap from Backend
+  useEffect(() => {
+    fetchRoadmap();
+  }, []);
+
+  const fetchRoadmap = async () => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      if (!userInfo || !userInfo.token) {
+        setLoading(false);
+        return;
+      }
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      };
+
+      const { data } = await axios.get("http://localhost:5000/api/roadmap/me", config);
+
+      if (data.success && data.data?.weeks?.length) {
+        setWeeksData(data.data.weeks);
+      }
+
+      // Fetch user profile for hero title
+      const profileRes = await axios.get("http://localhost:5000/api/profile/me", config);
+      if (profileRes.data?.data?.targetRole) {
+        setTargetRole(profileRes.data.data.targetRole);
+      }
+    } catch (err) {
+      console.error("Fetch Roadmap Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNextWeek = () => {
     if (currentWeekIndex < weeksData.length - 1) {
@@ -131,22 +72,71 @@ function AIRoadmap() {
     }
   };
 
-  const toggleTask = (taskId) => {
-    setWeeksData((prevData) =>
-      prevData.map((week, idx) => {
-        if (idx !== currentWeekIndex) return week;
-        const updatedTasks = week.tasks.map((t) =>
-          t.id === taskId ? { ...t, completed: !t.completed } : t
-        );
-        return { ...week, tasks: updatedTasks };
-      })
-    );
+  const toggleTask = async (taskId) => {
+    const activeWeek = weeksData[currentWeekIndex];
+
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const config = {
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      };
+
+      // Optimistic UI state update
+      setWeeksData((prevData) =>
+        prevData.map((week, idx) => {
+          if (idx !== currentWeekIndex) return week;
+          const updatedTasks = week.tasks.map((t) =>
+            t.id === taskId ? { ...t, completed: !t.completed } : t
+          );
+          return { ...week, tasks: updatedTasks };
+        })
+      );
+
+      // Save to Mongo DB
+      await axios.patch(
+        "http://localhost:5000/api/roadmap/task/toggle",
+        { weekNumber: activeWeek.week, taskId },
+        config
+      );
+    } catch (err) {
+      console.error("Toggle Task Error:", err);
+      fetchRoadmap(); // Revert on failure
+    }
   };
 
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <TopNavbar />
+        <div className="flex h-96 w-full items-center justify-center space-x-3 text-zinc-400">
+          <Loader2 className="animate-spin text-cyan-400" size={28} />
+          <span className="text-sm font-medium">Loading AI Roadmap from database...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!weeksData.length) {
+    return (
+      <DashboardLayout>
+        <TopNavbar />
+        <div className="mt-8 rounded-3xl border border-zinc-800 bg-[#11111A] p-8 text-center text-zinc-400">
+          <h2 className="text-xl font-bold text-white">No active roadmap found</h2>
+          <p className="mt-2 text-sm text-zinc-500">
+            Please complete the profile onboarding wizard to generate your personalized AI learning path.
+          </p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const activeWeek = weeksData[currentWeekIndex];
   const completedCount = activeWeek.tasks.filter((t) => t.completed).length;
   const progressPercent = Math.round(
     (completedCount / activeWeek.tasks.length) * 100
-  );
+  ) || 0;
 
   return (
     <DashboardLayout>
@@ -164,7 +154,7 @@ function AIRoadmap() {
                 <Brain size={15} /> AI Custom Timeline Path
               </div>
               <h1 className="mt-3 text-3xl font-extrabold text-white sm:text-4xl">
-                {roadmapData.hero.targetRole} Roadmap
+                {targetRole} Roadmap
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-zinc-400">
                 Tailored path generated for your target timeframe. Complete each week step-by-step to reach job readiness.
@@ -242,12 +232,14 @@ function AIRoadmap() {
             </div>
           </div>
 
-          <div className="mb-8 rounded-2xl border border-violet-500/20 bg-violet-500/5 p-5">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase text-violet-400">
-              <Sparkles size={16} /> AI Focus Note
+          {activeWeek.aiSummary && (
+            <div className="mb-8 rounded-2xl border border-violet-500/20 bg-violet-500/5 p-5">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase text-violet-400">
+                <Sparkles size={16} /> AI Focus Note
+              </div>
+              <p className="mt-1 text-sm text-zinc-300">{activeWeek.aiSummary}</p>
             </div>
-            <p className="mt-1 text-sm text-zinc-300">{activeWeek.aiSummary}</p>
-          </div>
+          )}
 
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Left 2 Cols: Checklist */}
@@ -287,7 +279,7 @@ function AIRoadmap() {
                     </div>
 
                     <span className="flex items-center gap-1 text-xs text-zinc-500">
-                      <Clock size={13} /> {task.time}
+                      <Clock size={13} /> {task.time || "2 hrs"}
                     </span>
                   </div>
                 ))}
@@ -302,26 +294,25 @@ function AIRoadmap() {
               </h3>
 
               <div className="space-y-3">
-                {activeWeek.materials.map((mat, i) => {
-                  const IconComponent = mat.icon;
-                  return (
-                    <a
-                      key={i}
-                      href={mat.link}
-                      className="block rounded-xl border border-zinc-800 bg-[#09090F] p-4 transition hover:border-violet-500/50"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold uppercase text-violet-400">
-                          {mat.type}
-                        </span>
-                        <ExternalLink size={14} className="text-zinc-500" />
-                      </div>
-                      <h4 className="mt-2 text-sm font-bold text-white">
-                        {mat.title}
-                      </h4>
-                    </a>
-                  );
-                })}
+                {activeWeek.materials?.map((mat, i) => (
+                  <a
+                    key={i}
+                    href={mat.link || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-xl border border-zinc-800 bg-[#09090F] p-4 transition hover:border-violet-500/50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase text-violet-400">
+                        {mat.type}
+                      </span>
+                      <ExternalLink size={14} className="text-zinc-500" />
+                    </div>
+                    <h4 className="mt-2 text-sm font-bold text-white">
+                      {mat.title}
+                    </h4>
+                  </a>
+                ))}
               </div>
             </div>
           </div>

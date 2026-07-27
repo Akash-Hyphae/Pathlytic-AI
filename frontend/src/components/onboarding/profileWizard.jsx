@@ -6,6 +6,7 @@ import Step3 from "./step3";
 import Step4 from "./step4";
 import { ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function ProfileWizard() {
   const navigate = useNavigate();
@@ -32,7 +33,11 @@ function ProfileWizard() {
 
   const nextStep = () => {
     if (currentStep === 1) {
-      if (!profileData.college || !profileData.degree || !profileData.currentYear) {
+      if (
+        !profileData.college ||
+        !profileData.degree ||
+        !profileData.currentYear
+      ) {
         alert("Please complete all academic information.");
         return;
       }
@@ -43,7 +48,9 @@ function ProfileWizard() {
         !profileData.timeline ||
         !profileData.dailyHours
       ) {
-        alert("Please select target role, companies, timeline, and study hours.");
+        alert(
+          "Please select target role, companies, timeline, and study hours.",
+        );
         return;
       }
     } else if (currentStep === 3) {
@@ -59,9 +66,9 @@ function ProfileWizard() {
     if (currentStep > 1) setCurrentStep((prev) => prev - 1);
   };
 
-  const submitProfile = () => {
+  const submitProfile = async () => {
     const allRated = profileData.selectedSkills.every(
-      (skill) => profileData.skillConfidence[skill]
+      (skill) => profileData.skillConfidence[skill],
     );
 
     if (!allRated) {
@@ -69,8 +76,55 @@ function ProfileWizard() {
       return;
     }
 
-    // Save profile data & proceed to assessment intro
-    navigate("/assessment");
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+
+      if (!userInfo || !userInfo.token) {
+        alert("Session expired. Please log in again.");
+        navigate("/login");
+        return;
+      }
+
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      };
+
+      // 1. Save Profile Data to MongoDB
+      console.log("Saving profile data...", profileData);
+      const profileRes = await axios.post(
+        "http://localhost:5000/api/profile",
+        profileData,
+        config,
+      );
+      console.log("Profile saved successfully:", profileRes.data);
+
+      // Generate AI Roadmap with Auth Header
+      console.log("Generating AI Roadmap...");
+      const aiResponse = await axios.post(
+        "http://localhost:5000/api/roadmap/generate",
+        profileData,
+        config, // <-- Passes Authorization: Bearer <token>
+      );
+
+      if (aiResponse.data && aiResponse.data.success) {
+        localStorage.setItem(
+          "userRoadmap",
+          JSON.stringify(aiResponse.data.data),
+        );
+        navigate("/roadmap");
+      }
+    } catch (error) {
+      console.error(
+        "DETAILED SUBMIT ERROR:",
+        error.response?.data || error.message,
+      );
+      alert(
+        `Error: ${error.response?.data?.message || "Failed to save profile or generate AI Roadmap."}`,
+      );
+    }
   };
 
   return (
