@@ -1,4 +1,4 @@
-import AssessmentLayout from "../../components/assessment/AssessmentLayout";
+import AssessmentLayout from "../../components/assessment/assessmentLayout";
 
 function Assessment() {
   return <AssessmentLayout />;

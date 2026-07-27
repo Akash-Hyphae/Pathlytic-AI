@@ -39,10 +39,9 @@ function DailyTasks() {
       const { data } = await axios.get("http://localhost:5000/api/roadmap/me", config);
 
       if (data.success && data.data?.weeks?.length) {
-        const activeWeek = data.data.weeks[0]; // Active Week
+        const activeWeek = data.data.weeks[0];
         setCurrentWeekNum(activeWeek.week);
 
-        // Map backend tasks to preserve your UI icons, XP, and categories
         const mappedTasks = activeWeek.tasks.map((t, idx) => {
           const categoryIcons = [Video, Code2, Zap, BookOpen];
           const categoryColors = ["text-red-400", "text-cyan-400", "text-violet-400", "text-amber-400"];
@@ -78,12 +77,10 @@ function DailyTasks() {
         },
       };
 
-      // Optimistic UI update
       setTaskList((prev) =>
         prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
       );
 
-      // Save to MongoDB
       await axios.patch(
         "http://localhost:5000/api/roadmap/task/toggle",
         { weekNumber: currentWeekNum, taskId: id },
@@ -91,7 +88,7 @@ function DailyTasks() {
       );
     } catch (err) {
       console.error("Task Toggle Error:", err);
-      fetchActiveTasks(); // Revert on failure
+      fetchActiveTasks();
     }
   };
 
@@ -105,7 +102,6 @@ function DailyTasks() {
       <TopNavbar />
 
       <div className="mt-8 space-y-8">
-        {/* Top Daily Banner */}
         <div className="flex flex-col gap-6 rounded-3xl border border-zinc-800 bg-[#11111A] p-8 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
@@ -134,7 +130,6 @@ function DailyTasks() {
           </div>
         </div>
 
-        {/* Task List */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-white">Action Items</h2>
 
@@ -203,16 +198,6 @@ function DailyTasks() {
               );
             })
           )}
-        </div>
-
-        {/* Tomorrow Preview */}
-        <div className="rounded-2xl border border-zinc-800/80 bg-[#09090F] p-6">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            <Award size={16} className="text-cyan-400" /> Tomorrow's Focus Preview
-          </div>
-          <p className="mt-2 text-sm text-zinc-300">
-            Tomorrow AI will focus on advanced practice modules and target company assessment prep.
-          </p>
         </div>
       </div>
     </DashboardLayout>

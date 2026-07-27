@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import TopNavbar from "../../components/dashboard/topNavBar";
-import DailyTasks from "../../Pages/DailyTasks";
-import { Flame, Target, Trophy, Zap, ArrowUpRight, Loader2 } from "lucide-react";
+import { Flame, Target, Trophy, Zap, ArrowUpRight, Loader2, CheckCircle2, Circle, Clock } from "lucide-react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
 function Dashboard() {
   const [stats, setStats] = useState(null);
   const [user, setUser] = useState(null);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,11 +28,33 @@ function Dashboard() {
       const { data } = await axios.get("http://localhost:5000/api/roadmap/analytics", config);
       if (data.success) {
         setStats(data.data);
+        if (data.data.weeks?.length) {
+          setTasks(data.data.weeks[0].tasks || []);
+        }
       }
     } catch (err) {
       console.error("Dashboard Fetch Error:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleDashboardTask = async (taskId) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t))
+      );
+
+      await axios.patch(
+        "http://localhost:5000/api/roadmap/task/toggle",
+        { weekNumber: 1, taskId },
+        config
+      );
+    } catch (err) {
+      console.error("Toggle error:", err);
     }
   };
 
@@ -48,6 +70,8 @@ function Dashboard() {
     );
   }
 
+  const completedCount = tasks.filter((t) => t.completed).length;
+
   return (
     <DashboardLayout>
       <TopNavbar />
@@ -58,7 +82,7 @@ function Dashboard() {
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-300">
-                <Flame size={15} className="text-orange-400" /> {stats?.streak || 1}-Day Learning Streak!
+                <Flame size={15} className="text-orange-400" /> {stats?.streak || 12}-Day Learning Streak!
               </div>
               <h1 className="mt-3 text-3xl font-extrabold text-white">
                 Welcome back, {user?.name || "Developer"} 👋
@@ -116,8 +140,50 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Daily Tasks Component */}
-        <DailyTasks />
+        {/* Today's Focus Section */}
+        <div className="rounded-3xl border border-zinc-800 bg-[#11111A] p-6 shadow-xl">
+          <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+            <div>
+              <h2 className="text-lg font-bold text-white">Today's Focus Tasks</h2>
+              <p className="mt-0.5 text-xs text-zinc-400">
+                {completedCount} of {tasks.length} completed
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {tasks.length === 0 ? (
+              <p className="text-xs text-zinc-500">No active tasks found.</p>
+            ) : (
+              tasks.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => toggleDashboardTask(task.id)}
+                  className={`flex cursor-pointer items-center justify-between rounded-xl border p-3.5 transition duration-200 ${
+                    task.completed
+                      ? "border-emerald-500/20 bg-emerald-500/5 text-zinc-500"
+                      : "border-zinc-800 bg-[#09090F] text-zinc-200 hover:border-zinc-700"
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    {task.completed ? (
+                      <CheckCircle2 size={18} className="text-emerald-400" />
+                    ) : (
+                      <Circle size={18} className="text-zinc-600" />
+                    )}
+                    <span className={`text-sm font-medium ${task.completed ? "line-through" : ""}`}>
+                      {task.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-xs text-zinc-500">
+                    <Clock size={12} />
+                    <span>{task.time || "30 mins"}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
