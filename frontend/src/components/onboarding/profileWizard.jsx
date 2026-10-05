@@ -4,13 +4,14 @@ import Step1 from "./step1";
 import Step2 from "./step2";
 import Step3 from "./step3";
 import Step4 from "./step4";
-import { ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
 
 function ProfileWizard() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [profileData, setProfileData] = useState({
     college: "",
@@ -49,7 +50,7 @@ function ProfileWizard() {
         !profileData.dailyHours
       ) {
         alert(
-          "Please select target role, companies, timeline, and study hours.",
+          "Please select target role, companies, timeline, and study hours."
         );
         return;
       }
@@ -68,7 +69,7 @@ function ProfileWizard() {
 
   const submitProfile = async () => {
     const allRated = profileData.selectedSkills.every(
-      (skill) => profileData.skillConfidence[skill],
+      (skill) => profileData.skillConfidence[skill]
     );
 
     if (!allRated) {
@@ -77,53 +78,37 @@ function ProfileWizard() {
     }
 
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      setIsSubmitting(true);
 
-      if (!userInfo || !userInfo.token) {
-        alert("Session expired. Please log in again.");
-        navigate("/login");
-        return;
-      }
-
-      const config = {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-
-      // 1. Save Profile Data to MongoDB
+      // 1. Save Profile Data to MongoDB (Token attached automatically by api service)
       console.log("Saving profile data...", profileData);
-      const profileRes = await axios.post(
-        "http://localhost:5000/api/profile",
-        profileData,
-        config,
-      );
+      const profileRes = await api.post("/profile", profileData);
       console.log("Profile saved successfully:", profileRes.data);
 
-      // Generate AI Roadmap with Auth Header
+      // 2. Generate AI Roadmap
       console.log("Generating AI Roadmap...");
-      const aiResponse = await axios.post(
-        "http://localhost:5000/api/roadmap/generate",
-        profileData,
-        config, // <-- Passes Authorization: Bearer <token>
-      );
+      const aiResponse = await api.post("/roadmap/generate", profileData);
 
       if (aiResponse.data && aiResponse.data.success) {
         localStorage.setItem(
           "userRoadmap",
-          JSON.stringify(aiResponse.data.data),
+          JSON.stringify(aiResponse.data.data)
         );
         navigate("/roadmap");
       }
     } catch (error) {
       console.error(
         "DETAILED SUBMIT ERROR:",
-        error.response?.data || error.message,
+        error.response?.data || error.message
       );
       alert(
-        `Error: ${error.response?.data?.message || "Failed to save profile or generate AI Roadmap."}`,
+        `Error: ${
+          error.response?.data?.message ||
+          "Failed to save profile or generate AI Roadmap."
+        }`
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -156,8 +141,8 @@ function ProfileWizard() {
       <div className="relative z-10 mt-10 flex items-center justify-between border-t border-zinc-800/80 pt-6">
         <button
           onClick={prevStep}
-          disabled={currentStep === 1}
-          className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-[#09090F] px-5 py-3 text-sm font-semibold text-zinc-300 transition duration-200 hover:border-zinc-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+          disabled={currentStep === 1 || isSubmitting}
+          className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-[#09090F] px-5 py-3 text-sm font-semibold text-zinc-300 transition duration-200 hover:border-zinc-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
         >
           <ArrowLeft size={16} /> Back
         </button>
@@ -165,14 +150,24 @@ function ProfileWizard() {
         {currentStep === 4 ? (
           <button
             onClick={submitProfile}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-95"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-95 disabled:opacity-50 cursor-pointer"
           >
-            Generate AI Roadmap <Sparkles size={16} />
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" /> Generating
+                Roadmap...
+              </>
+            ) : (
+              <>
+                Generate AI Roadmap <Sparkles size={16} />
+              </>
+            )}
           </button>
         ) : (
           <button
             onClick={nextStep}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-95"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-95 cursor-pointer"
           >
             Continue <ArrowRight size={16} />
           </button>

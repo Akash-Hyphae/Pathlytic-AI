@@ -8,11 +8,10 @@ import {
   BookOpen,
   Code2,
   Video,
-  Award,
   Loader2,
   CalendarDays,
 } from "lucide-react";
-import axios from "axios";
+import api from "../../services/api";
 
 function DailyTasks() {
   const [activeWeekData, setActiveWeekData] = useState(null);
@@ -25,19 +24,7 @@ function DailyTasks() {
 
   const fetchActiveTasks = async () => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      if (!userInfo || !userInfo.token) {
-        setLoading(false);
-        return;
-      }
-
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-
-      const { data } = await axios.get("http://localhost:5000/api/roadmap/me", config);
+      const { data } = await api.get("/roadmap/me");
 
       if (data.success && data.data?.weeks?.length) {
         setActiveWeekData(data.data.weeks[0]);
@@ -51,13 +38,6 @@ function DailyTasks() {
 
   const toggleSubTask = async (subTaskId) => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-
       // Optimistic state update
       setActiveWeekData((prev) => {
         if (!prev) return prev;
@@ -71,11 +51,10 @@ function DailyTasks() {
         return { ...prev, tasks: updatedTasks };
       });
 
-      await axios.patch(
-        "http://localhost:5000/api/roadmap/task/toggle",
-        { weekNumber: activeWeekData?.week || 1, subTaskId },
-        config
-      );
+      await api.patch("/roadmap/task/toggle", {
+        weekNumber: activeWeekData?.week || 1,
+        subTaskId,
+      });
     } catch (err) {
       console.error("Task Toggle Error:", err);
       fetchActiveTasks();
@@ -87,14 +66,26 @@ function DailyTasks() {
     if (!activeWeekData || !activeWeekData.tasks) return [];
 
     const categoryIcons = [Code2, Video, Zap, BookOpen];
-    const categoryColors = ["text-cyan-400", "text-red-400", "text-violet-400", "text-amber-400"];
-    const categories = ["Coding Practice", "Video Lesson", "Hands-on Task", "Revision"];
+    const categoryColors = [
+      "text-cyan-400",
+      "text-red-400",
+      "text-violet-400",
+      "text-amber-400",
+    ];
+    const categories = [
+      "Coding Practice",
+      "Video Lesson",
+      "Hands-on Task",
+      "Revision",
+    ];
 
     const subTasksList = [];
 
     activeWeekData.tasks.forEach((parentTask, parentIdx) => {
       if (parentTask.subTasks) {
-        const matchingSub = parentTask.subTasks.find((st) => st.day === selectedDay);
+        const matchingSub = parentTask.subTasks.find(
+          (st) => st.day === selectedDay
+        );
         if (matchingSub) {
           subTasksList.push({
             id: matchingSub.id,
@@ -155,9 +146,9 @@ function DailyTasks() {
               <button
                 key={dayNum}
                 onClick={() => setSelectedDay(dayNum)}
-                className={`flex-1 min-w-[100px] rounded-xl py-3 px-2 text-center text-xs font-semibold transition ${
+                className={`flex-1 min-w-[100px] rounded-xl py-3 px-2 text-center text-xs font-semibold transition cursor-pointer ${
                   isSelected
-                    ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg"
+                    ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg shadow-violet-600/20"
                     : "bg-[#09090F] text-zinc-400 hover:border-zinc-700 hover:text-white border border-zinc-800"
                 }`}
               >
