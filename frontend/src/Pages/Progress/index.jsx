@@ -21,27 +21,43 @@ function Progress() {
 
   const fetchProgressData = async () => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      if (!userInfo?.token) {
+      // Check all possible token storage patterns
+      const rawUser = localStorage.getItem("user");
+      const rawUserInfo = localStorage.getItem("userInfo");
+      const directToken = localStorage.getItem("token");
+
+      let token = directToken;
+      if (!token && rawUser) {
+        try {
+          token = JSON.parse(rawUser)?.token;
+        } catch (_) {}
+      }
+      if (!token && rawUserInfo) {
+        try {
+          token = JSON.parse(rawUserInfo)?.token;
+        } catch (_) {}
+      }
+
+      if (!token) {
         setLoading(false);
         return;
       }
 
       const config = {
-        headers: { Authorization: `Bearer ${userInfo.token}` },
+        headers: { Authorization: `Bearer ${token}` },
       };
 
       // Fetch both Analytics and Profile from MongoDB
-      const [analyticsRes, profileRes] = await Promise.all([
+      const [analyticsRes, profileRes] = await Promise.allSettled([
         axios.get("http://localhost:5000/api/roadmap/analytics", config),
         axios.get("http://localhost:5000/api/profile/me", config),
       ]);
 
-      if (analyticsRes.data.success) {
-        setAnalytics(analyticsRes.data.data);
+      if (analyticsRes.status === "fulfilled" && analyticsRes.value.data.success) {
+        setAnalytics(analyticsRes.value.data.data);
       }
-      if (profileRes.data.success) {
-        setProfile(profileRes.data.data);
+      if (profileRes.status === "fulfilled" && profileRes.value.data.success) {
+        setProfile(profileRes.value.data.data);
       }
     } catch (err) {
       console.error("Progress Fetch Error:", err);
@@ -64,11 +80,13 @@ function Progress() {
 
   // Generate dynamic skill matrix from user's selected skills and confidence ratings
   const skillConfidenceMap = profile?.skillConfidence || {};
-  const selectedSkills = profile?.selectedSkills || ["JavaScript", "HTML/CSS", "React"];
+  const selectedSkills = profile?.selectedSkills && profile.selectedSkills.length > 0
+    ? profile.selectedSkills
+    : [];
 
   const dynamicSkillMatrix = selectedSkills.map((skill) => {
-    const confidenceRating = skillConfidenceMap[skill] || 3; // 1 to 5
-    const levelPercent = confidenceRating * 20; // convert 1-5 to 20%-100%
+    const confidenceRating = Number(skillConfidenceMap[skill]) || 3; // 1 to 5
+    const levelPercent = Math.min(Math.max(confidenceRating * 20, 10), 100);
 
     let status = "Intermediate";
     let color = "bg-cyan-500";
@@ -107,7 +125,7 @@ function Progress() {
               Skill & Job Readiness Progress
             </h1>
             <p className="mt-1 text-sm text-zinc-400">
-              Target Role: <strong className="text-cyan-400">{profile?.targetRole || "Tech Developer"}</strong> • Live tracking across your roadmap.
+              Target Role: <strong className="text-cyan-400">{profile?.targetRole || analytics?.targetRole || "Tech Developer"}</strong> • Live tracking across your roadmap.
             </p>
           </div>
 
@@ -120,7 +138,7 @@ function Progress() {
             </div>
             <div className="h-10 w-[1px] bg-zinc-800" />
             <div className="text-center">
-              <p className="text-xs text-zinc-400">Completed Sub-Tasks</p>
+              <p className="text-xs text-zinc-400">Completed Tasks</p>
               <p className="text-3xl font-extrabold text-violet-400">
                 {analytics?.completedTasks || 0} / {analytics?.totalTasks || 0}
               </p>
@@ -135,33 +153,39 @@ function Progress() {
             Real-time evaluation based on your onboarding ratings and technology stack
           </p>
 
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {dynamicSkillMatrix.map((item) => (
-              <div
-                key={item.skill}
-                className="rounded-2xl border border-zinc-800/80 bg-[#09090F] p-5"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-white">{item.skill}</h3>
-                  <span className="text-xs font-semibold text-zinc-400">
-                    {item.level}%
-                  </span>
-                </div>
+          {dynamicSkillMatrix.length === 0 ? (
+            <p className="mt-6 text-sm text-zinc-500">
+              No skills selected yet. Complete your onboarding profile to view your skill matrix.
+            </p>
+          ) : (
+            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {dynamicSkillMatrix.map((item) => (
+                <div
+                  key={item.skill}
+                  className="rounded-2xl border border-zinc-800/80 bg-[#09090F] p-5"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-white">{item.skill}</h3>
+                    <span className="text-xs font-semibold text-zinc-400">
+                      {item.level}%
+                    </span>
+                  </div>
 
-                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-800">
-                  <div
-                    className={`h-full rounded-full ${item.color}`}
-                    style={{ width: `${item.level}%` }}
-                  />
-                </div>
+                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+                    <div
+                      className={`h-full rounded-full ${item.color} transition-all duration-500`}
+                      style={{ width: `${item.level}%` }}
+                    />
+                  </div>
 
-                <div className="mt-3 flex items-center justify-between text-xs">
-                  <span className="text-zinc-500">Status</span>
-                  <span className="font-medium text-zinc-300">{item.status}</span>
+                  <div className="mt-3 flex items-center justify-between text-xs">
+                    <span className="text-zinc-500">Status</span>
+                    <span className="font-medium text-zinc-300">{item.status}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Overall Engagement Summary */}
@@ -194,7 +218,7 @@ function Progress() {
             </div>
             <div>
               <p className="text-xs text-zinc-400">Active Streak</p>
-              <p className="text-2xl font-bold text-white">{analytics?.streak || 12} Days</p>
+              <p className="text-2xl font-bold text-white">{analytics?.streak || 1} Days</p>
             </div>
           </div>
         </div>

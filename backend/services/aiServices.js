@@ -11,6 +11,84 @@ if (!apiKey) {
 
 const ai = new GoogleGenAI({ apiKey });
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const generateFallbackRoadmap = (userProfile) => {
+  const { targetRole = "Full Stack Developer", selectedSkills = [] } = userProfile;
+  const primarySkill = selectedSkills[0] || "Core Programming";
+  const secondarySkill = selectedSkills[1] || "Frameworks & Architecture";
+
+  return {
+    weeks: [
+      {
+        week: 1,
+        title: `Foundations of ${primarySkill} & Problem Solving`,
+        timeCommitment: "12 hrs",
+        aiSummary: `Tailored pathway focused on solidifying ${primarySkill} fundamentals for ${targetRole}.`,
+        tasks: [
+          {
+            id: "w1-t1",
+            name: `Core ${primarySkill} Mastery`,
+            completed: false,
+            time: "6 hrs",
+            subTasks: [
+              { id: "w1-t1-d1", name: "Language syntax & runtime environment", day: 1, completed: false, time: "45 mins" },
+              { id: "w1-t1-d2", name: "Data structures: Arrays, Objects, & HashMaps", day: 2, completed: false, time: "45 mins" },
+              { id: "w1-t1-d3", name: "Algorithmic thinking & Two-pointer approach", day: 3, completed: false, time: "45 mins" },
+              { id: "w1-t1-d4", name: "Memory management & complexity analysis", day: 4, completed: false, time: "45 mins" },
+              { id: "w1-t1-d5", name: "Solving 5 core LeetCode-style problems", day: 5, completed: false, time: "60 mins" },
+              { id: "w1-t1-d6", name: "Weekly code review & knowledge recap", day: 6, completed: false, time: "30 mins" }
+            ]
+          },
+          {
+            id: "w1-t2",
+            name: "Modern Development Workflow",
+            completed: false,
+            time: "6 hrs",
+            subTasks: [
+              { id: "w1-t2-d1", name: "Git branch workflows & GitHub actions", day: 1, completed: false, time: "45 mins" },
+              { id: "w1-t2-d2", name: "Setting up modern linting, prettier, & configs", day: 2, completed: false, time: "45 mins" },
+              { id: "w1-t2-d3", name: "API testing using Postman/Thunder Client", day: 3, completed: false, time: "45 mins" },
+              { id: "w1-t2-d4", name: "Writing structured unit tests", day: 4, completed: false, time: "45 mins" },
+              { id: "w1-t2-d5", name: "Debugging via DevTools & Node inspector", day: 5, completed: false, time: "60 mins" },
+              { id: "w1-t2-d6", name: "Weekly milestone assessment", day: 6, completed: false, time: "30 mins" }
+            ]
+          }
+        ],
+        materials: [
+          { title: "Foundations & Roadmap Guide", type: "Reading", link: "#" },
+          { title: "Data Structures Practice Set", type: "Exercises", link: "#" }
+        ]
+      },
+      {
+        week: 2,
+        title: `Advanced ${secondarySkill} & System Design`,
+        timeCommitment: "14 hrs",
+        aiSummary: `Expanding into scalable architecture and practical application development for ${targetRole}.`,
+        tasks: [
+          {
+            id: "w2-t1",
+            name: `${secondarySkill} Deep Dive`,
+            completed: false,
+            time: "7 hrs",
+            subTasks: [
+              { id: "w2-t1-d1", name: "Architecture design patterns & modules", day: 1, completed: false, time: "60 mins" },
+              { id: "w2-t1-d2", name: "State management & asynchronous flows", day: 2, completed: false, time: "60 mins" },
+              { id: "w2-t1-d3", name: "Building reusable UI/API components", day: 3, completed: false, time: "60 mins" },
+              { id: "w2-t1-d4", name: "Database schemas & indexing strategies", day: 4, completed: false, time: "60 mins" },
+              { id: "w2-t1-d5", name: "Integration testing & edge cases", day: 5, completed: false, time: "60 mins" },
+              { id: "w2-t1-d6", name: "Deploying prototype to staging", day: 6, completed: false, time: "45 mins" }
+            ]
+          }
+        ],
+        materials: [
+          { title: "System Design Essentials", type: "Documentation", link: "#" }
+        ]
+      }
+    ]
+  };
+};
+
 export const generateAIRoadmap = async (userProfile) => {
   const {
     targetRole = "Full Stack Developer",
@@ -59,20 +137,6 @@ export const generateAIRoadmap = async (userProfile) => {
               { "id": "w1-t1-d5", "name": "Task 1.5: Array In-place Mutations", "day": 5, "completed": false, "time": "45 mins" },
               { "id": "w1-t1-d6", "name": "Task 1.6: Array Problem Set Revision", "day": 6, "completed": false, "time": "45 mins" }
             ]
-          },
-          {
-            "id": "w1-t2",
-            "name": "Weekly Task 2: Core JavaScript Concepts",
-            "completed": false,
-            "time": "3 hrs",
-            "subTasks": [
-              { "id": "w1-t2-d1", "name": "Task 2.1: Closures & Scopes", "day": 1, "completed": false, "time": "30 mins" },
-              { "id": "w1-t2-d2", "name": "Task 2.2: Promises & Event Loop", "day": 2, "completed": false, "time": "30 mins" },
-              { "id": "w1-t2-d3", "name": "Task 2.3: Async / Await Engine", "day": 3, "completed": false, "time": "30 mins" },
-              { "id": "w1-t2-d4", "name": "Task 2.4: Prototypes & OOP in JS", "day": 4, "completed": false, "time": "30 mins" },
-              { "id": "w1-t2-d5", "name": "Task 2.5: ES6+ Features In-depth", "day": 5, "completed": false, "time": "30 mins" },
-              { "id": "w1-t2-d6", "name": "Task 2.6: JS Execution Context Quiz", "day": 6, "completed": false, "time": "30 mins" }
-            ]
           }
         ],
         "materials": [
@@ -83,18 +147,33 @@ export const generateAIRoadmap = async (userProfile) => {
   }
   `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+  const candidateModels = ["gemini-3.8-flash", "gemini-2.5-pro"];
 
-    return JSON.parse(response.text);
-  } catch (error) {
-    console.error("DETAILED GEMINI ERROR:", error);
-    throw new Error(error.message || "Failed to generate AI Roadmap");
+  for (const model of candidateModels) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        console.log(`[AI] Attempt ${attempt} calling ${model}...`);
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+          },
+        });
+
+        if (response && response.text) {
+          console.log(`[AI] Generation succeeded with ${model}!`);
+          return JSON.parse(response.text);
+        }
+      } catch (err) {
+        console.warn(`[AI] ${model} attempt ${attempt} failed: ${err.message}`);
+        if (err.message && err.message.includes("503")) {
+          await sleep(2000);
+        }
+      }
+    }
   }
+
+  console.warn("[AI] Gemini servers are heavily overloaded. Using fallback personalized roadmap.");
+  return generateFallbackRoadmap(userProfile);
 };

@@ -1,5 +1,6 @@
 import { generateAIRoadmap } from "../services/aiServices.js";
 import Roadmap from "../models/Roadmap.js";
+import Profile from "../models/Profile.js";
 
 // @desc Generate & Save AI Roadmap
 // @route POST /api/roadmap/generate
@@ -60,9 +61,6 @@ export const getMyRoadmap = async (req, res) => {
   }
 };
 
-// @desc Toggle Task Completion Status
-// @route PATCH /api/roadmap/task/toggle
-// @access Private
 // @desc Toggle Task or SubTask Completion Status
 // @route PATCH /api/roadmap/task/toggle
 // @access Private
@@ -125,7 +123,7 @@ export const getUserAnalytics = async (req, res) => {
     const roadmap = await Roadmap.findOne({ user: req.user._id });
     const profile = await Profile.findOne({ user: req.user._id });
 
-    if (!roadmap) {
+    if (!roadmap || !roadmap.weeks || roadmap.weeks.length === 0) {
       return res.status(200).json({
         success: true,
         data: {
@@ -137,6 +135,7 @@ export const getUserAnalytics = async (req, res) => {
           targetRole: profile?.targetRole || "Tech Developer",
           currentWeek: 1,
           totalWeeks: 0,
+          weeks: [],
         },
       });
     }
@@ -146,8 +145,15 @@ export const getUserAnalytics = async (req, res) => {
 
     roadmap.weeks.forEach((w) => {
       w.tasks.forEach((t) => {
-        totalTasks++;
-        if (t.completed) completedTasks++;
+        if (t.subTasks && t.subTasks.length > 0) {
+          t.subTasks.forEach((st) => {
+            totalTasks++;
+            if (st.completed) completedTasks++;
+          });
+        } else {
+          totalTasks++;
+          if (t.completed) completedTasks++;
+        }
       });
     });
 
@@ -160,9 +166,9 @@ export const getUserAnalytics = async (req, res) => {
         totalTasks,
         completedTasks,
         overallProgress,
-        streak: 12, // Dynamic streak calculation
+        streak: completedTasks > 0 ? Math.min(completedTasks, 7) : 1,
         totalXP,
-        targetRole: profile?.targetRole || "Full Stack Developer",
+        targetRole: profile?.targetRole || "Tech Developer",
         currentWeek: 1,
         totalWeeks: roadmap.weeks.length,
         weeks: roadmap.weeks,

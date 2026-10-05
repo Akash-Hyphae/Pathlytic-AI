@@ -9,19 +9,30 @@ export const protect = async (req, res, next) => {
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
-      // Get token from header (Bearer <token>)
       token = req.headers.authorization.split(" ")[1];
 
-      // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Get user from token (exclude password)
       req.user = await User.findById(decoded.id).select("-password");
 
-      next();
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: "User not found" });
+      }
+
+      return next();
     } catch (error) {
-      console.error(error);
-      return res.status(401).json({ success: false, message: "Not authorized, token failed" });
+      if (error.name === "TokenExpiredError") {
+        return res.status(401).json({
+          success: false,
+          code: "TOKEN_EXPIRED",
+          message: "Session expired. Please log in again.",
+        });
+      }
+
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized, invalid token",
+      });
     }
   }
 
