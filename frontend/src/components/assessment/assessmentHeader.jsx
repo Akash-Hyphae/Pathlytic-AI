@@ -1,6 +1,5 @@
 import ProgressBar from "./ProgressBar";
-import Timer from "./Timer";
-
+import Timer from "./timer";
 function AssessmentHeader({ current, total }) {
   return (
     <div className="mb-8">

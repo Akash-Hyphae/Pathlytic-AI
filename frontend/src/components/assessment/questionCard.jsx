@@ -1,4 +1,4 @@
-import OptionCard from "./OptionCard";
+import OptionCard from "./optionCard";
 
 function QuestionCard({
   question,
