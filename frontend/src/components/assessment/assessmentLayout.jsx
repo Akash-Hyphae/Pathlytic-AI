@@ -1,7 +1,6 @@
 import useAssessment from "../../hooks/useAssessment";
-
-import AssessmentHeader from "./AssessmentHeader";
-import QuestionCard from "./QuestionCard";
+import assessmentHeader from "./assessmentHeader";
+import questionCard from "./questionCard";
 import NavigationButtons from "./navigationButton";
 import { useNavigate } from "react-router-dom";
 
