@@ -1,24 +1,97 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import TopNavbar from "../../components/dashboard/topNavBar";
 import {
-  BarChart3,
   TrendingUp,
   Target,
-  BrainCircuit,
-  Award,
-  CheckCircle,
+  Trophy,
+  Loader2,
+  Zap,
 } from "lucide-react";
-
-const skillMatrix = [
-  { skill: "HTML & CSS", level: 95, status: "Mastered", color: "bg-emerald-500" },
-  { skill: "JavaScript", level: 85, status: "Strong", color: "bg-cyan-400" },
-  { skill: "React Basics", level: 75, status: "Proficient", color: "bg-violet-500" },
-  { skill: "React Hooks", level: 45, status: "Needs Practice", color: "bg-amber-400" },
-  { skill: "Node.js & Express", level: 60, status: "Intermediate", color: "bg-cyan-500" },
-  { skill: "System Design", level: 30, status: "Weak Point", color: "bg-red-400" },
-];
+import axios from "axios";
 
 function Progress() {
+  const [analytics, setAnalytics] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProgressData();
+  }, []);
+
+  const fetchProgressData = async () => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      if (!userInfo?.token) {
+        setLoading(false);
+        return;
+      }
+
+      const config = {
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      };
+
+      // Fetch both Analytics and Profile from MongoDB
+      const [analyticsRes, profileRes] = await Promise.all([
+        axios.get("http://localhost:5000/api/roadmap/analytics", config),
+        axios.get("http://localhost:5000/api/profile/me", config),
+      ]);
+
+      if (analyticsRes.data.success) {
+        setAnalytics(analyticsRes.data.data);
+      }
+      if (profileRes.data.success) {
+        setProfile(profileRes.data.data);
+      }
+    } catch (err) {
+      console.error("Progress Fetch Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <TopNavbar />
+        <div className="flex h-96 w-full items-center justify-center space-x-3 text-zinc-400">
+          <Loader2 className="animate-spin text-cyan-400" size={28} />
+          <span>Calculating live progress metrics...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Generate dynamic skill matrix from user's selected skills and confidence ratings
+  const skillConfidenceMap = profile?.skillConfidence || {};
+  const selectedSkills = profile?.selectedSkills || ["JavaScript", "HTML/CSS", "React"];
+
+  const dynamicSkillMatrix = selectedSkills.map((skill) => {
+    const confidenceRating = skillConfidenceMap[skill] || 3; // 1 to 5
+    const levelPercent = confidenceRating * 20; // convert 1-5 to 20%-100%
+
+    let status = "Intermediate";
+    let color = "bg-cyan-500";
+
+    if (levelPercent >= 80) {
+      status = "Strong";
+      color = "bg-emerald-500";
+    } else if (levelPercent >= 60) {
+      status = "Proficient";
+      color = "bg-cyan-400";
+    } else if (levelPercent <= 40) {
+      status = "Needs Practice";
+      color = "bg-amber-400";
+    }
+
+    return {
+      skill,
+      level: levelPercent,
+      status,
+      color,
+    };
+  });
+
   return (
     <DashboardLayout>
       <TopNavbar />
@@ -34,32 +107,36 @@ function Progress() {
               Skill & Job Readiness Progress
             </h1>
             <p className="mt-1 text-sm text-zinc-400">
-              Evaluated using your quiz scores, daily consistency, and target company requirements.
+              Target Role: <strong className="text-cyan-400">{profile?.targetRole || "Tech Developer"}</strong> • Live tracking across your roadmap.
             </p>
           </div>
 
           <div className="flex items-center gap-6 rounded-2xl border border-zinc-800 bg-[#09090F] p-5">
             <div className="text-center">
-              <p className="text-xs text-zinc-400">Target Readiness</p>
-              <p className="text-3xl font-extrabold text-cyan-400">68%</p>
+              <p className="text-xs text-zinc-400">Roadmap Progress</p>
+              <p className="text-3xl font-extrabold text-cyan-400">
+                {analytics?.overallProgress || 0}%
+              </p>
             </div>
             <div className="h-10 w-[1px] bg-zinc-800" />
             <div className="text-center">
-              <p className="text-xs text-zinc-400">Assessment Score</p>
-              <p className="text-3xl font-extrabold text-violet-400">18 / 20</p>
+              <p className="text-xs text-zinc-400">Completed Sub-Tasks</p>
+              <p className="text-3xl font-extrabold text-violet-400">
+                {analytics?.completedTasks || 0} / {analytics?.totalTasks || 0}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Skill Heatmap */}
+        {/* Dynamic Skill Matrix */}
         <div className="rounded-3xl border border-zinc-800 bg-[#11111A] p-8">
-          <h2 className="text-xl font-bold text-white">AI Skill Matrix</h2>
+          <h2 className="text-xl font-bold text-white">Your Skill Confidence Matrix</h2>
           <p className="mt-1 text-xs text-zinc-400">
-            Real-time evaluation of topics required for Full Stack Roles
+            Real-time evaluation based on your onboarding ratings and technology stack
           </p>
 
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {skillMatrix.map((item) => (
+            {dynamicSkillMatrix.map((item) => (
               <div
                 key={item.skill}
                 className="rounded-2xl border border-zinc-800/80 bg-[#09090F] p-5"
@@ -87,28 +164,38 @@ function Progress() {
           </div>
         </div>
 
-        {/* Weekly Activity */}
-        <div className="rounded-3xl border border-zinc-800 bg-[#11111A] p-8">
-          <h2 className="text-xl font-bold text-white">Weekly Study Hours</h2>
-          <div className="mt-8 flex items-end justify-between gap-4 h-44 px-4">
-            {[
-              { day: "Mon", hrs: 3.5 },
-              { day: "Tue", hrs: 2.0 },
-              { day: "Wed", hrs: 4.0 },
-              { day: "Thu", hrs: 3.0 },
-              { day: "Fri", hrs: 2.5 },
-              { day: "Sat", hrs: 5.0 },
-              { day: "Sun", hrs: 1.5 },
-            ].map((d) => (
-              <div key={d.day} className="flex flex-col items-center flex-1 h-full justify-end">
-                <span className="mb-2 text-xs text-cyan-400 font-semibold">{d.hrs}h</span>
-                <div
-                  className="w-full rounded-t-xl bg-gradient-to-t from-violet-600 to-cyan-400 transition-all duration-500"
-                  style={{ height: `${(d.hrs / 5) * 100}%` }}
-                />
-                <span className="mt-2 text-xs text-zinc-400">{d.day}</span>
-              </div>
-            ))}
+        {/* Overall Engagement Summary */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-zinc-800 bg-[#11111A] p-5 flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-orange-500/10 text-orange-400">
+              <Zap size={24} />
+            </div>
+            <div>
+              <p className="text-xs text-zinc-400">Total XP Earned</p>
+              <p className="text-2xl font-bold text-white">+{analytics?.totalXP || 0} XP</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-[#11111A] p-5 flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-cyan-500/10 text-cyan-400">
+              <Target size={24} />
+            </div>
+            <div>
+              <p className="text-xs text-zinc-400">Current Week</p>
+              <p className="text-2xl font-bold text-white">
+                Week {analytics?.currentWeek || 1} of {analytics?.totalWeeks || 1}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-[#11111A] p-5 flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400">
+              <Trophy size={24} />
+            </div>
+            <div>
+              <p className="text-xs text-zinc-400">Active Streak</p>
+              <p className="text-2xl font-bold text-white">{analytics?.streak || 12} Days</p>
+            </div>
           </div>
         </div>
       </div>

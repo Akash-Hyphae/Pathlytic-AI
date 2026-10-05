@@ -63,28 +63,49 @@ export const getMyRoadmap = async (req, res) => {
 // @desc Toggle Task Completion Status
 // @route PATCH /api/roadmap/task/toggle
 // @access Private
+// @desc Toggle Task or SubTask Completion Status
+// @route PATCH /api/roadmap/task/toggle
+// @access Private
 export const toggleTaskCompletion = async (req, res) => {
   try {
-    const { weekNumber, taskId } = req.body;
+    const { weekNumber, taskId, subTaskId } = req.body;
 
     const roadmap = await Roadmap.findOne({ user: req.user._id });
     if (!roadmap) {
       return res.status(404).json({ success: false, message: "Roadmap not found" });
     }
 
-    // Find week and task
     const week = roadmap.weeks.find((w) => w.week === weekNumber);
     if (!week) {
       return res.status(404).json({ success: false, message: "Week not found" });
     }
 
-    const task = week.tasks.find((t) => t.id === taskId);
-    if (!task) {
-      return res.status(404).json({ success: false, message: "Task not found" });
+    // Toggle sub-task if subTaskId is provided
+    if (subTaskId) {
+      let foundSubTask = null;
+      for (const parentTask of week.tasks) {
+        if (parentTask.subTasks) {
+          const st = parentTask.subTasks.find((s) => s.id === subTaskId);
+          if (st) {
+            st.completed = !st.completed;
+            foundSubTask = st;
+            break;
+          }
+        }
+      }
+
+      if (!foundSubTask) {
+        return res.status(404).json({ success: false, message: "SubTask not found" });
+      }
+    } else {
+      // Toggle parent weekly task
+      const task = week.tasks.find((t) => t.id === taskId);
+      if (!task) {
+        return res.status(404).json({ success: false, message: "Task not found" });
+      }
+      task.completed = !task.completed;
     }
 
-    // Toggle completed state
-    task.completed = !task.completed;
     await roadmap.save();
 
     return res.status(200).json({

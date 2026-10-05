@@ -10,13 +10,14 @@ import {
   Video,
   Award,
   Loader2,
+  CalendarDays,
 } from "lucide-react";
 import axios from "axios";
 
 function DailyTasks() {
-  const [taskList, setTaskList] = useState([]);
+  const [activeWeekData, setActiveWeekData] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [currentWeekNum, setCurrentWeekNum] = useState(1);
 
   useEffect(() => {
     fetchActiveTasks();
@@ -39,27 +40,7 @@ function DailyTasks() {
       const { data } = await axios.get("http://localhost:5000/api/roadmap/me", config);
 
       if (data.success && data.data?.weeks?.length) {
-        const activeWeek = data.data.weeks[0];
-        setCurrentWeekNum(activeWeek.week);
-
-        const mappedTasks = activeWeek.tasks.map((t, idx) => {
-          const categoryIcons = [Video, Code2, Zap, BookOpen];
-          const categoryColors = ["text-red-400", "text-cyan-400", "text-violet-400", "text-amber-400"];
-          const categories = ["Video Lesson", "Coding Practice", "Hands-on Task", "Revision Notes"];
-
-          return {
-            id: t.id,
-            title: t.name,
-            category: categories[idx % categories.length],
-            time: t.time || "30 mins",
-            xp: 50 + (idx * 20),
-            completed: t.completed,
-            icon: categoryIcons[idx % categoryIcons.length],
-            color: categoryColors[idx % categoryColors.length],
-          };
-        });
-
-        setTaskList(mappedTasks);
+        setActiveWeekData(data.data.weeks[0]);
       }
     } catch (err) {
       console.error("Fetch Daily Tasks Error:", err);
@@ -68,7 +49,7 @@ function DailyTasks() {
     }
   };
 
-  const toggleTask = async (id) => {
+  const toggleSubTask = async (subTaskId) => {
     try {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
       const config = {
@@ -77,13 +58,22 @@ function DailyTasks() {
         },
       };
 
-      setTaskList((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-      );
+      // Optimistic state update
+      setActiveWeekData((prev) => {
+        if (!prev) return prev;
+        const updatedTasks = prev.tasks.map((parentTask) => {
+          if (!parentTask.subTasks) return parentTask;
+          const updatedSubTasks = parentTask.subTasks.map((st) =>
+            st.id === subTaskId ? { ...st, completed: !st.completed } : st
+          );
+          return { ...parentTask, subTasks: updatedSubTasks };
+        });
+        return { ...prev, tasks: updatedTasks };
+      });
 
       await axios.patch(
         "http://localhost:5000/api/roadmap/task/toggle",
-        { weekNumber: currentWeekNum, taskId: id },
+        { weekNumber: activeWeekData?.week || 1, subTaskId },
         config
       );
     } catch (err) {
@@ -92,66 +82,116 @@ function DailyTasks() {
     }
   };
 
-  const completedTasks = taskList.filter((t) => t.completed).length;
-  const totalXP = taskList
-    .filter((t) => t.completed)
-    .reduce((sum, t) => sum + t.xp, 0);
+  // Collect all sub-tasks for the selected day across ALL weekly goals
+  const getSubTasksForSelectedDay = () => {
+    if (!activeWeekData || !activeWeekData.tasks) return [];
+
+    const categoryIcons = [Code2, Video, Zap, BookOpen];
+    const categoryColors = ["text-cyan-400", "text-red-400", "text-violet-400", "text-amber-400"];
+    const categories = ["Coding Practice", "Video Lesson", "Hands-on Task", "Revision"];
+
+    const subTasksList = [];
+
+    activeWeekData.tasks.forEach((parentTask, parentIdx) => {
+      if (parentTask.subTasks) {
+        const matchingSub = parentTask.subTasks.find((st) => st.day === selectedDay);
+        if (matchingSub) {
+          subTasksList.push({
+            id: matchingSub.id,
+            parentName: parentTask.name,
+            title: matchingSub.name,
+            completed: matchingSub.completed,
+            time: matchingSub.time || "30 mins",
+            xp: 50,
+            icon: categoryIcons[parentIdx % categoryIcons.length],
+            color: categoryColors[parentIdx % categoryColors.length],
+            category: categories[parentIdx % categories.length],
+          });
+        }
+      }
+    });
+
+    return subTasksList;
+  };
+
+  const todaysSubTasks = getSubTasksForSelectedDay();
+  const completedCount = todaysSubTasks.filter((st) => st.completed).length;
 
   return (
     <DashboardLayout>
       <TopNavbar />
 
       <div className="mt-8 space-y-8">
+        {/* Banner */}
         <div className="flex flex-col gap-6 rounded-3xl border border-zinc-800 bg-[#11111A] p-8 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
-              <Flame size={18} /> 12-Day Streak Active!
+              <Flame size={18} /> Week {activeWeekData?.week || 1} Daily Tasks
             </div>
             <h1 className="mt-2 text-3xl font-extrabold text-white">
-              Today's Micro-Goals
+              Daily Goals: Day {selectedDay}
             </h1>
             <p className="mt-1 text-sm text-zinc-400">
-              AI calculated these micro-tasks from Week {currentWeekNum} to keep you on schedule for your target.
+              Each weekly goal is divided into 6 daily actionable sub-tasks.
             </p>
           </div>
 
           <div className="flex items-center gap-6">
             <div className="text-center">
-              <p className="text-xs text-zinc-400">Completed</p>
+              <p className="text-xs text-zinc-400">Day {selectedDay} Progress</p>
               <p className="text-2xl font-bold text-cyan-400">
-                {completedTasks} / {taskList.length}
+                {completedCount} / {todaysSubTasks.length}
               </p>
-            </div>
-            <div className="h-10 w-[1px] bg-zinc-800" />
-            <div className="text-center">
-              <p className="text-xs text-zinc-400">XP Earned Today</p>
-              <p className="text-2xl font-bold text-violet-400">+{totalXP} XP</p>
             </div>
           </div>
         </div>
 
+        {/* Day Selector (Day 1 through Day 6) */}
+        <div className="flex gap-2 overflow-x-auto rounded-2xl border border-zinc-800 bg-[#11111A] p-3 no-scrollbar">
+          {[1, 2, 3, 4, 5, 6].map((dayNum) => {
+            const isSelected = selectedDay === dayNum;
+
+            return (
+              <button
+                key={dayNum}
+                onClick={() => setSelectedDay(dayNum)}
+                className={`flex-1 min-w-[100px] rounded-xl py-3 px-2 text-center text-xs font-semibold transition ${
+                  isSelected
+                    ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg"
+                    : "bg-[#09090F] text-zinc-400 hover:border-zinc-700 hover:text-white border border-zinc-800"
+                }`}
+              >
+                <div>Day {dayNum}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Sub-Tasks Checklist for Selected Day */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white">Action Items</h2>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <CalendarDays size={20} className="text-cyan-400" /> Actionable Sub-Tasks for Day {selectedDay}
+          </h2>
 
           {loading ? (
             <div className="flex h-40 items-center justify-center space-x-2 text-zinc-400">
               <Loader2 className="animate-spin text-cyan-400" size={24} />
-              <p className="text-sm">Loading daily micro-tasks...</p>
+              <p className="text-sm">Loading daily sub-tasks...</p>
             </div>
-          ) : taskList.length === 0 ? (
-            <div className="rounded-2xl border border-zinc-800 bg-[#11111A] p-6 text-center text-zinc-400">
-              No tasks found for today. Please complete your profile wizard first.
+          ) : todaysSubTasks.length === 0 ? (
+            <div className="rounded-2xl border border-zinc-800 bg-[#11111A] p-8 text-center text-zinc-400">
+              No sub-tasks found for Day {selectedDay}. Generate a new AI roadmap to update your tasks!
             </div>
           ) : (
-            taskList.map((task) => {
-              const Icon = task.icon;
+            todaysSubTasks.map((st) => {
+              const Icon = st.icon;
 
               return (
                 <div
-                  key={task.id}
-                  onClick={() => toggleTask(task.id)}
+                  key={st.id}
+                  onClick={() => toggleSubTask(st.id)}
                   className={`group flex cursor-pointer items-center justify-between rounded-2xl border p-5 transition duration-200 ${
-                    task.completed
+                    st.completed
                       ? "border-zinc-800/60 bg-[#09090F]/50 opacity-70"
                       : "border-zinc-800 bg-[#11111A] hover:border-violet-500/50"
                   }`}
@@ -159,39 +199,35 @@ function DailyTasks() {
                   <div className="flex items-center gap-4">
                     <input
                       type="checkbox"
-                      checked={task.completed}
+                      checked={st.completed}
                       onChange={() => {}}
                       className="h-5 w-5 rounded border-zinc-700 bg-zinc-900 accent-cyan-500 cursor-pointer"
                     />
 
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#09090F]">
-                      <Icon className={task.color} size={22} />
+                      <Icon className={st.color} size={22} />
                     </div>
 
                     <div>
                       <h3
                         className={`font-semibold ${
-                          task.completed
-                            ? "text-zinc-500 line-through"
-                            : "text-white"
+                          st.completed ? "text-zinc-500 line-through" : "text-white"
                         }`}
                       >
-                        {task.title}
+                        {st.title}
                       </h3>
-                      <div className="mt-1 flex items-center gap-3 text-xs text-zinc-400">
-                        <span className="rounded bg-zinc-800 px-2 py-0.5">
-                          {task.category}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} /> {task.time}
-                        </span>
-                      </div>
+                      <p className="text-xs text-zinc-500 mt-0.5">
+                        Parent Goal: <span className="text-zinc-400">{st.parentName}</span>
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1 text-xs text-zinc-500">
+                      <Clock size={12} /> {st.time}
+                    </span>
                     <span className="rounded-full bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-400">
-                      +{task.xp} XP
+                      +{st.xp} XP
                     </span>
                   </div>
                 </div>

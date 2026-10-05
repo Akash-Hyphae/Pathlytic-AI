@@ -1,5 +1,18 @@
 import mongoose from "mongoose";
 
+// Sub-task schema (e.g. Task 1.1, Task 1.2)
+const subTaskSchema = new mongoose.Schema({
+  id: String,
+  name: String,
+  day: Number, // 1 to 6
+  completed: {
+    type: Boolean,
+    default: false,
+  },
+  time: String,
+});
+
+// Weekly main task schema (e.g. Task 1, Task 2)
 const taskSchema = new mongoose.Schema({
   id: String,
   name: String,
@@ -8,6 +21,7 @@ const taskSchema = new mongoose.Schema({
     default: false,
   },
   time: String,
+  subTasks: [subTaskSchema], // <--- Holds Task 1.1, Task 1.2, Task 1.3...
 });
 
 const materialSchema = new mongoose.Schema({
