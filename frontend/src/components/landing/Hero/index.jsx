@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, CheckCircle2, Circle, Clock, Flame, ArrowRight, Zap } from "lucide-react";
-import axios from "axios";
+import api from "../../../services/api";
 
 function Hero() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -19,19 +19,15 @@ function Hero() {
 
   const fetchLiveTasks = async () => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      if (!userInfo || !userInfo.token) return;
+      const rawUser = localStorage.getItem("user") || localStorage.getItem("userInfo");
+      const token = localStorage.getItem("token") || (rawUser ? JSON.parse(rawUser)?.token : null);
+
+      if (!token) return;
 
       setIsLoggedIn(true);
       setLoading(true);
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-
-      const { data } = await axios.get("http://localhost:5000/api/roadmap/me", config);
+      const { data } = await api.get("/roadmap/me");
 
       if (data.success && data.data?.weeks?.length) {
         const activeWeek = data.data.weeks[0];
@@ -48,7 +44,6 @@ function Hero() {
   };
 
   const toggleTask = async (taskId) => {
-    // If not logged in, just toggle demo state in UI
     if (!isLoggedIn) {
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t))
@@ -57,24 +52,14 @@ function Hero() {
     }
 
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-
-      // Optimistic UI update
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t))
       );
 
-      // Save live check to MongoDB
-      await axios.patch(
-        "http://localhost:5000/api/roadmap/task/toggle",
-        { weekNumber: currentWeekNum, taskId },
-        config
-      );
+      await api.patch("/roadmap/task/toggle", {
+        weekNumber: currentWeekNum,
+        taskId,
+      });
     } catch (err) {
       console.error("Task toggle failed:", err);
       fetchLiveTasks();
@@ -85,12 +70,10 @@ function Hero() {
 
   return (
     <section className="relative overflow-hidden bg-[#09090F] min-h-[90vh] flex items-center py-20">
-      {/* Glow Effects */}
       <div className="absolute -left-40 top-20 h-96 w-96 rounded-full bg-violet-700/20 blur-[140px]" />
       <div className="absolute right-0 bottom-0 h-[450px] w-[450px] rounded-full bg-cyan-500/15 blur-[160px]" />
 
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center px-8 relative z-10">
-        {/* Left Column: Hero Text */}
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-violet-500/40 bg-violet-500/10 px-4 py-2 text-xs font-semibold text-violet-300">
             <Sparkles size={14} className="text-violet-400" />
@@ -138,10 +121,8 @@ function Hero() {
           </div>
         </div>
 
-        {/* Right Column: Live Daily Tasks Widget */}
         <div className="relative">
           <div className="rounded-3xl border border-zinc-800/90 bg-[#11111A]/90 p-7 shadow-2xl backdrop-blur-xl">
-            {/* Header */}
             <div className="flex items-center justify-between border-b border-zinc-800/80 pb-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400">
@@ -160,7 +141,6 @@ function Hero() {
               </div>
             </div>
 
-            {/* Daily Tasks List */}
             <div className="mt-6 space-y-3">
               {loading ? (
                 <div className="p-6 text-center text-xs text-zinc-500">

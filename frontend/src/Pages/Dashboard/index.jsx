@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import TopNavbar from "../../components/dashboard/topNavBar";
 import { Flame, Target, Trophy, Zap, ArrowUpRight, Loader2, CheckCircle2, Circle, Clock } from "lucide-react";
-import axios from "axios";
 import { Link } from "react-router-dom";
+import api from "../../services/api";
 
 function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -17,15 +17,12 @@ function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      if (!userInfo || !userInfo.token) return;
-      setUser(userInfo);
+      const rawUser = localStorage.getItem("user") || localStorage.getItem("userInfo");
+      if (rawUser) {
+        setUser(JSON.parse(rawUser));
+      }
 
-      const config = {
-        headers: { Authorization: `Bearer ${userInfo.token}` },
-      };
-
-      const { data } = await axios.get("http://localhost:5000/api/roadmap/analytics", config);
+      const { data } = await api.get("/roadmap/analytics");
       if (data.success) {
         setStats(data.data);
         if (data.data.weeks?.length) {
@@ -41,18 +38,11 @@ function Dashboard() {
 
   const toggleDashboardTask = async (taskId) => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t))
       );
 
-      await axios.patch(
-        "http://localhost:5000/api/roadmap/task/toggle",
-        { weekNumber: 1, taskId },
-        config
-      );
+      await api.patch("/roadmap/task/toggle", { weekNumber: 1, taskId });
     } catch (err) {
       console.error("Toggle error:", err);
     }
@@ -77,12 +67,11 @@ function Dashboard() {
       <TopNavbar />
 
       <div className="mt-8 space-y-8">
-        {/* Welcome Banner */}
         <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-[#11111A] p-8 shadow-2xl">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-300">
-                <Flame size={15} className="text-orange-400" /> {stats?.streak || 12}-Day Learning Streak!
+                <Flame size={15} className="text-orange-400" /> {stats?.streak || 1}-Day Learning Streak!
               </div>
               <h1 className="mt-3 text-3xl font-extrabold text-white">
                 Welcome back, {user?.name || "Developer"} 👋
@@ -101,7 +90,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-zinc-800 bg-[#11111A] p-5">
             <div className="flex items-center justify-between text-zinc-400">
@@ -140,7 +128,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Today's Focus Section */}
         <div className="rounded-3xl border border-zinc-800 bg-[#11111A] p-6 shadow-xl">
           <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
             <div>

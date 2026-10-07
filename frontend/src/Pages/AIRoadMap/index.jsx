@@ -8,14 +8,12 @@ import {
   ChevronRight,
   Clock,
   BookOpen,
-  Code2,
-  Video,
   ExternalLink,
   Target,
   Flame,
   Loader2,
 } from "lucide-react";
-import axios from "axios";
+import api from "../../services/api";
 
 function AIRoadmap() {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
@@ -23,35 +21,25 @@ function AIRoadmap() {
   const [targetRole, setTargetRole] = useState("Full Stack Developer");
   const [loading, setLoading] = useState(true);
 
-  // Fetch Live Roadmap from Backend
   useEffect(() => {
     fetchRoadmap();
   }, []);
 
   const fetchRoadmap = async () => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      if (!userInfo || !userInfo.token) {
-        setLoading(false);
-        return;
+      const [roadmapRes, profileRes] = await Promise.allSettled([
+        api.get("/roadmap/me"),
+        api.get("/profile/me"),
+      ]);
+
+      if (roadmapRes.status === "fulfilled" && roadmapRes.value.data.success) {
+        if (roadmapRes.value.data.data?.weeks?.length) {
+          setWeeksData(roadmapRes.value.data.data.weeks);
+        }
       }
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-
-      const { data } = await axios.get("http://localhost:5000/api/roadmap/me", config);
-
-      if (data.success && data.data?.weeks?.length) {
-        setWeeksData(data.data.weeks);
-      }
-
-      // Fetch user profile for hero title
-      const profileRes = await axios.get("http://localhost:5000/api/profile/me", config);
-      if (profileRes.data?.data?.targetRole) {
-        setTargetRole(profileRes.data.data.targetRole);
+      if (profileRes.status === "fulfilled" && profileRes.value.data?.data?.targetRole) {
+        setTargetRole(profileRes.value.data.data.targetRole);
       }
     } catch (err) {
       console.error("Fetch Roadmap Error:", err);
@@ -76,14 +64,6 @@ function AIRoadmap() {
     const activeWeek = weeksData[currentWeekIndex];
 
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-
-      // Optimistic UI state update
       setWeeksData((prevData) =>
         prevData.map((week, idx) => {
           if (idx !== currentWeekIndex) return week;
@@ -94,15 +74,13 @@ function AIRoadmap() {
         })
       );
 
-      // Save to Mongo DB
-      await axios.patch(
-        "http://localhost:5000/api/roadmap/task/toggle",
-        { weekNumber: activeWeek.week, taskId },
-        config
-      );
+      await api.patch("/roadmap/task/toggle", {
+        weekNumber: activeWeek.week,
+        taskId,
+      });
     } catch (err) {
       console.error("Toggle Task Error:", err);
-      fetchRoadmap(); // Revert on failure
+      fetchRoadmap();
     }
   };
 
@@ -143,7 +121,6 @@ function AIRoadmap() {
       <TopNavbar />
 
       <div className="mt-8 space-y-8">
-        {/* Banner Section */}
         <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-[#11111A] p-8 shadow-2xl">
           <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-violet-600/15 blur-3xl" />
           <div className="absolute -left-24 -bottom-24 h-64 w-64 rounded-full bg-cyan-500/15 blur-3xl" />
@@ -171,7 +148,6 @@ function AIRoadmap() {
           </div>
         </div>
 
-        {/* Swipe Navigation Header */}
         <div className="flex flex-col gap-4 rounded-2xl border border-zinc-800 bg-[#11111A] p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-3">
@@ -189,7 +165,6 @@ function AIRoadmap() {
             </h2>
           </div>
 
-          {/* Previous / Next Swiper Controls */}
           <div className="flex items-center gap-3">
             <button
               onClick={handlePrevWeek}
@@ -209,9 +184,7 @@ function AIRoadmap() {
           </div>
         </div>
 
-        {/* Active Week Details Card */}
         <div className="rounded-3xl border border-zinc-800 bg-[#11111A] p-8 shadow-xl">
-          {/* Progress Overview */}
           <div className="mb-8">
             <div className="flex items-center justify-between text-sm">
               <span className="text-zinc-400">
@@ -242,11 +215,9 @@ function AIRoadmap() {
           )}
 
           <div className="grid gap-8 lg:grid-cols-3">
-            {/* Left 2 Cols: Checklist */}
             <div className="lg:col-span-2">
               <h3 className="mb-4 text-lg font-bold text-white flex items-center gap-2">
-                <Target size={18} className="text-cyan-400" /> What to Complete
-                This Week
+                <Target size={18} className="text-cyan-400" /> What to Complete This Week
               </h3>
 
               <div className="space-y-3">
@@ -286,11 +257,9 @@ function AIRoadmap() {
               </div>
             </div>
 
-            {/* Right Col: AI Learning Material */}
             <div>
               <h3 className="mb-4 text-lg font-bold text-white flex items-center gap-2">
-                <BookOpen size={18} className="text-violet-400" /> AI Recommended
-                Materials
+                <BookOpen size={18} className="text-violet-400" /> AI Recommended Materials
               </h3>
 
               <div className="space-y-3">

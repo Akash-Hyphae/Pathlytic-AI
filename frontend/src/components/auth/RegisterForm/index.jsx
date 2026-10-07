@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../../services/api";
 
 function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -35,17 +35,21 @@ function RegisterForm() {
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/register", {
+      const response = await api.post("/auth/register", {
         name,
         email,
         password,
       });
 
       if (response.data.success) {
-        // Save user details & token to local storage
-        localStorage.setItem("userInfo", JSON.stringify(response.data.user));
+        const userData = response.data.user;
 
-        // Redirect to onboarding wizard
+        if (userData?.token) {
+          localStorage.setItem("token", userData.token);
+        }
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("userInfo", JSON.stringify(userData));
+
         navigate("/complete-profile");
       }
     } catch (err) {
@@ -57,12 +61,10 @@ function RegisterForm() {
 
   return (
     <div className="w-full max-w-2xl rounded-3xl border border-zinc-800/80 bg-[#11111A]/90 p-8 shadow-2xl backdrop-blur-xl sm:p-10">
-      {/* Logo */}
       <h2 className="bg-gradient-to-r from-violet-500 to-cyan-400 bg-clip-text text-center text-3xl font-extrabold tracking-tight text-transparent">
         Pathlytic AI
       </h2>
 
-      {/* Heading */}
       <div className="mt-6 text-center">
         <h1 className="text-3xl font-bold text-white">Create Account</h1>
         <p className="mt-1 text-sm text-zinc-400">
@@ -76,11 +78,8 @@ function RegisterForm() {
         </div>
       )}
 
-      {/* Form */}
       <form className="mt-8 space-y-5" onSubmit={handleRegister}>
-        {/* Name & Email Row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* Name */}
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Full Name
@@ -95,7 +94,6 @@ function RegisterForm() {
             />
           </div>
 
-          {/* Email */}
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Email
@@ -111,9 +109,7 @@ function RegisterForm() {
           </div>
         </div>
 
-        {/* Password & Confirm Password Row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* Password */}
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Password
@@ -130,14 +126,13 @@ function RegisterForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-cyan-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-cyan-400 cursor-pointer"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
-          {/* Confirm Password */}
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Confirm Password
@@ -154,7 +149,7 @@ function RegisterForm() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-cyan-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-cyan-400 cursor-pointer"
               >
                 {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -162,7 +157,6 @@ function RegisterForm() {
           </div>
         </div>
 
-        {/* Terms Checkbox */}
         <div className="flex items-center gap-2.5 pt-1">
           <input
             type="checkbox"
@@ -176,11 +170,10 @@ function RegisterForm() {
           </label>
         </div>
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-[0.99] disabled:opacity-50"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
         >
           {loading ? (
             <>
@@ -192,7 +185,6 @@ function RegisterForm() {
         </button>
       </form>
 
-      {/* Footer */}
       <p className="mt-6 text-center text-xs text-zinc-400">
         Already have an account?{" "}
         <Link

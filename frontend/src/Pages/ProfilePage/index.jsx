@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import TopNavbar from "../../components/dashboard/topNavBar";
-import { User, GraduationCap, Target, Building2, Clock, Loader2 } from "lucide-react";
-import axios from "axios";
+import { GraduationCap, Target, Building2, Loader2 } from "lucide-react";
+import api from "../../services/api";
 
 function ProfilePage() {
   const [profile, setProfile] = useState(null);
@@ -14,12 +14,7 @@ function ProfilePage() {
 
   const fetchProfile = async () => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      if (!userInfo?.token) return;
-
-      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-      const { data } = await axios.get("http://localhost:5000/api/profile/me", config);
-
+      const { data } = await api.get("/profile/me");
       if (data.success) {
         setProfile(data.data);
       }
@@ -46,7 +41,6 @@ function ProfilePage() {
       <TopNavbar />
 
       <div className="mt-8 space-y-8">
-        {/* Profile Card */}
         <div className="rounded-3xl border border-zinc-800 bg-[#11111A] p-8">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-600 to-cyan-400 text-2xl font-bold text-white">
@@ -76,7 +70,6 @@ function ProfilePage() {
             </div>
           </div>
 
-          {/* Target Companies */}
           {profile?.targetCompanies?.length > 0 && (
             <div className="mt-6">
               <h3 className="text-xs font-semibold uppercase text-zinc-400 flex items-center gap-1.5 mb-3">

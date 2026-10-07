@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import TopNavbar from "../../components/dashboard/topNavBar";
-import { BookOpen, ExternalLink, Loader2 } from "lucide-react";
-import axios from "axios";
+import { ExternalLink, Loader2 } from "lucide-react";
+import api from "../../services/api";
 
 function Resources() {
   const [materials, setMaterials] = useState([]);
@@ -14,11 +14,7 @@ function Resources() {
 
   const fetchResources = async () => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      if (!userInfo?.token) return;
-
-      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-      const { data } = await axios.get("http://localhost:5000/api/roadmap/me", config);
+      const { data } = await api.get("/roadmap/me");
 
       if (data.success && data.data?.weeks) {
         const allMaterials = [];

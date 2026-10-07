@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../../services/api";
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,16 +18,20 @@ function LoginForm() {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
+      const response = await api.post("/auth/login", {
         email,
         password,
       });
 
       if (response.data.success) {
-        // Save user & token in LocalStorage
-        localStorage.setItem("userInfo", JSON.stringify(response.data.user));
-        
-        // Redirect to Dashboard or Complete Profile
+        const userData = response.data.user;
+
+        if (userData?.token) {
+          localStorage.setItem("token", userData.token);
+        }
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("userInfo", JSON.stringify(userData));
+
         navigate("/dashboard");
       }
     } catch (err) {
@@ -96,7 +100,7 @@ function LoginForm() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-cyan-400"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-cyan-400 cursor-pointer"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -106,7 +110,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 w-full rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-[0.99] disabled:opacity-50"
+          className="mt-2 w-full rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition-all duration-200 hover:opacity-95 hover:shadow-cyan-500/25 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
